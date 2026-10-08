@@ -17,7 +17,7 @@ _이름: **Walkie-Claudie**(저장소·폴더 `walkie-claudie`, 워키토키 말
  버튼·녹음·재생                                                      HTTP 서버 + MCP 채널
 ```
 - **PC 쪽 = Claude Code 채널 플러그인.** 텔레그램 플러그인(`claude-plugins-official/telegram`)과 같은 방식: MCP 서버가 `claude/channel` 기능을 선언하고, 받은 말을 `notifications/claude/channel`로 세션에 넣고, Claude는 `reply` 도구로 답한다. 차이는 텔레그램 대신 폰과 직접 HTTP로 주고받는 것뿐.
-  - 실행(**방식 미결정 — 사용자 답 대기**): `--channels`는 Anthropic 승인 목록(공식 마켓) 플러그인만 받음. 직접 만든 채널은 `claude --dangerously-load-development-channels plugin:<이름>@<마켓>`(또는 `server:<mcp이름>`)로 붙음 — CLI가 "로컬 개발용, 인터넷에서 받은 채널엔 쓰지 말라"고 경고함. Team/Enterprise 조직은 관리자가 `channelsEnabled: true`(+`allowedChannelPlugins`)를 켜야 함. (2.1.293 바이너리 확인)
+  - 실행(**10/8 결정: 당분간 개발용 플래그로 쓰고, 다듬어지면 공식 디렉터리 제출·채널 허용 목록 등재 추진** — 12장): `--channels`는 Anthropic 승인 목록(공식 마켓) 플러그인만 받음. 직접 만든 채널은 `claude --dangerously-load-development-channels plugin:<이름>@<마켓>`(또는 `server:<mcp이름>`)로 붙음 — CLI가 "로컬 개발용, 인터넷에서 받은 채널엔 쓰지 말라"고 경고함. Team/Enterprise 조직은 관리자가 `channelsEnabled: true`(+`allowedChannelPlugins`)를 켜야 함. (2.1.293 바이너리 확인)
 - **안드로이드 앱 = 무전기.** 포그라운드 서비스로 뒤에서 대기, 버튼으로 녹음, 답 오면 바로 재생.
 - 중계 서버는 두지 않는다(운영 비용·음성 데이터 책임을 지지 않기 위해). 폰이 PC 주소로 직접 붙는다.
 
@@ -87,4 +87,5 @@ _이름: **Walkie-Claudie**(저장소·폴더 `walkie-claudie`, 워키토키 말
 ## 12. 진행 방식
 - 새 프로젝트 폴더(`~/walkie-claudie`)에 git 시작 → 이 PRD를 `docs/PRD.md`로 → 새 Claude Code 세션 띄워 핸드오프. 비서는 지시·결과 전달만.
 - GitHub 공개 push는 사용자 승인 후.
+- **공식화(사용자 결정 10/8)**: 쓸 만해지면 claude.ai/directory/manage에서 Plugin bundle로 제출(공개 GitHub 저장소, plugin.json, `claude plugin validate` 통과, 라이선스, 데이터 처리 설문, 보안 스캔). 주의: 채널 허용 목록은 `claude-plugins-official`의 채널 플러그인이고 커뮤니티 마켓은 허용 목록이 아님 — 디렉터리 등재만으로는 `--channels`가 안 될 수 있어, 등재 후 Anthropic에 채널 허용 목록 포함을 별도로 요청해야 함(문서상 '파트너 연락처와 조율'). 제출 전 plugin.json author 채우기.
 - 순서: ① 버튼 테스트 앱(실기기 측면·음량·이어폰 실측) ② PC 채널 플러그인 + 최소 앱(떠 있는 버튼, 글자 주고받기) ③ 끊김 대비·QR 연결·화면 3가지 ④ 나머지 버튼·README

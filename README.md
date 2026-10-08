@@ -29,11 +29,10 @@ PC에 띄워 둔 Claude Code 세션과 안드로이드 폰으로 **무전기처�
    claude plugin install walkie@walkie-claudie
    ```
 2. 무전기를 받을 세션 **하나만** `WALKIE_ENABLE=1`로 실행합니다.
-   <!-- TODO(결정 대기): 실행 방식 확정 후 다듬기 -->
    ```sh
    WALKIE_ENABLE=1 claude --dangerously-load-development-channels plugin:walkie@walkie-claudie
    ```
-   - 직접 만든 채널은 지금은 이 개발용 플래그로만 연결됩니다. 시작할 때마다 경고 창이 뜨며, Enter를 누르면 넘어갑니다.
+   - Claude Code 채널은 아직 연구 미리보기라, Anthropic 허용 목록에 없는 채널은 이 개발용 플래그로만 연결됩니다. 시작할 때마다 경고 창이 뜨며, Enter를 누르면 넘어갑니다. 공식 플러그인 디렉터리 등재를 추진할 예정이고, 등재되면 `--channels plugin:walkie@...`로 바뀝니다.
    - 플러그인은 PC의 **모든** Claude Code 세션에서 켜집니다. 하지만 `WALKIE_ENABLE=1`이 없는 세션에서는 포트도 도구도 열지 않고 조용히 있습니다. 그래서 여러 세션이 폰을 두고 다투지 않습니다.
 3. 앱 APK를 폰에 설치합니다([Releases](../../releases) 또는 `android/`에서 직접 빌드).
 4. PC 세션에서 `/walkie:pair`를 입력하면 QR이 나옵니다. 앱에서 **QR 스캔**으로 찍습니다.
@@ -88,11 +87,10 @@ Talk to a Claude Code session running on your PC from your Android phone, **like
    claude plugin install walkie@walkie-claudie
    ```
 2. Start **one** session with `WALKIE_ENABLE=1`:
-   <!-- TODO(pending decision): finalize launch method -->
    ```sh
    WALKIE_ENABLE=1 claude --dangerously-load-development-channels plugin:walkie@walkie-claudie
    ```
-   - Custom channels currently attach only through this development flag. A warning appears on every start; press Enter to continue.
+   - Claude Code channels are a research preview: channels not on Anthropic's allowlist attach only through this development flag. A warning appears on every start; press Enter to continue. We plan to submit to the official plugin directory; once listed, this becomes `--channels plugin:walkie@...`.
    - The plugin starts in **every** Claude Code session on the PC, but stays inert (no port, no tools) unless `WALKIE_ENABLE=1` is set, so sessions never fight over the phone.
 3. Install the app APK ([Releases](../../releases), or build `android/`).
 4. Run `/walkie:pair` in the session to show a QR code, then tap **Scan QR** in the app.

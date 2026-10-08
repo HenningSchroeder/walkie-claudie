@@ -1,6 +1,9 @@
 {
   "name": "walkie-claudie",
-  "owner": { "name": "Walkie-Claudie contributors" },
+  "description": "Walkie-Claudie: talk to your Claude Code session from an Android phone like a walkie-talkie.",
+  "owner": {
+    "name": "Walkie-Claudie contributors"
+  },
   "plugins": [
     {
       "name": "walkie",
