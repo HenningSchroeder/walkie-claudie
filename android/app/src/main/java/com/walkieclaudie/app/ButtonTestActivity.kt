@@ -44,7 +44,7 @@ class ButtonTestActivity : Activity() {
         log = TextView(this).apply { textSize = 17f; setTextIsSelectable(true) }
         // Same voice choice as the walkie, shown so a screenshot tells which engine/voice speaks.
         val ttsLine = TextView(this).apply { textSize = 13f; setTextIsSelectable(true); text = "TTS …" }
-        tts = openTts(this) { ttsLine.text = it }
+        tts = openTts(this) { ttsLine.text = "$it · build ${BuildConfig.BUILD}" }
         setContentView(ScrollView(this).apply {
             padForSystemBars()
             addView(LinearLayout(context).apply {

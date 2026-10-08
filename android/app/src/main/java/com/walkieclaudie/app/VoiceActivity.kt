@@ -2,19 +2,20 @@ package com.walkieclaudie.app
 
 import android.app.Activity
 import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Typeface
 import android.media.AudioAttributes
 import android.os.Bundle
 import android.provider.Settings
 import android.speech.tts.TextToSpeech
 import android.speech.tts.Voice
-import android.view.View
-import android.widget.AdapterView
-import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.LinearLayout
+import android.widget.RadioButton
+import android.widget.RadioGroup
+import android.widget.ScrollView
 import android.widget.SeekBar
-import android.widget.Spinner
 import android.widget.TextView
 import java.util.Locale
 
@@ -51,21 +52,42 @@ fun TextToSpeech.phoneLanguageVoices(): List<Voice> = voices.orEmpty()
     .filter { it.locale.language == Locale.getDefault().language && TextToSpeech.Engine.KEY_FEATURE_NOT_INSTALLED !in it.features }
     .sortedWith(compareByDescending<Voice> { it.quality }.thenBy { it.isNetworkConnectionRequired })
 
+/**
+ * Why an engine may be missing from TextToSpeech.getEngines(): what the package manager shows us
+ * for the TTS service intent, and how Samsung's engine looks from here (10/8: test phone hid it).
+ */
+fun ttsProbe(ctx: Context): String {
+    val pm = ctx.packageManager
+    val query = pm.queryIntentServices(Intent(TextToSpeech.Engine.INTENT_ACTION_TTS_SERVICE), PackageManager.MATCH_ALL)
+        .map { it.serviceInfo.packageName }
+    val smt = runCatching { pm.getPackageInfo(SAMSUNG_TTS, PackageManager.GET_SERVICES) }.getOrNull()
+    val smtInfo = smt?.let { p ->
+        "$SAMSUNG_TTS ${p.versionName}: " + p.services.orEmpty().joinToString { s ->
+            s.name.substringAfterLast('.') + (if (s.exported) "" else " (not exported)") + (s.permission?.let { " [$it]" } ?: "")
+        }
+    } ?: "$SAMSUNG_TTS not visible"
+    return "query=$query · $smtInfo"
+}
+
+const val SAMSUNG_TTS = "com.samsung.SMT"
+
 /** Pick the engine, voice and speed; every change plays a sample sentence. */
 class VoiceActivity : Activity() {
     private val prefs by lazy { getSharedPreferences(WalkieService.PREFS, MODE_PRIVATE) }
     private var tts: TextToSpeech? = null
-    private lateinit var engines: Spinner
-    private lateinit var voices: Spinner
+    private lateinit var engines: RadioGroup
+    private lateinit var voices: RadioGroup
     private lateinit var info: TextView
+    private var probe: TextToSpeech? = null
+    private var probeText = ""
     private var voiceNames = listOf<String>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         fun label(text: Int) = TextView(this).apply { setText(text); textSize = 14f; alpha = 0.7f; setPadding(0, 32, 0, 4) }
 
-        engines = Spinner(this)
-        voices = Spinner(this)
+        engines = RadioGroup(this)
+        voices = RadioGroup(this)
         info = TextView(this).apply { textSize = 12f; alpha = 0.6f; setPadding(0, 24, 0, 0); setTextIsSelectable(true) }
         val rate = prefs.getFloat(WalkieService.TTS_RATE, 1f)
         val rateLabel = TextView(this).apply { textSize = 14f; alpha = 0.7f; setPadding(0, 32, 0, 4); text = getString(R.string.voice_speed, rate) }
@@ -87,28 +109,34 @@ class VoiceActivity : Activity() {
             })
         }
 
-        setContentView(LinearLayout(this).apply {
+        setContentView(ScrollView(this).apply { padForSystemBars() }.also { it.addView(LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            padForSystemBars()
             addView(TextView(context).apply { setText(R.string.voice); textSize = 24f; typeface = Typeface.DEFAULT_BOLD })
             addView(label(R.string.voice_engine))
             addView(engines)
-            addView(label(R.string.voice_voice))
-            addView(voices)
             addView(rateLabel)
             addView(rateBar)
             addView(Button(context).apply { setText(R.string.voice_preview); setOnClickListener { sample() } },
                 LinearLayout.LayoutParams(-1, -2).apply { topMargin = 32 })
+            addView(label(R.string.voice_voice))
+            addView(voices)
             addView(info)
-        })
+        }) })
         reopen(fillEngines = true)
+        // Diagnosis: try Samsung's engine directly and report whether it connects.
+        probe = TextToSpeech(this, { status ->
+            val using = runCatching { TextToSpeech::class.java.getMethod("getCurrentEngine").invoke(probe) }.getOrNull()
+            probeText = "\n\nforce $SAMSUNG_TTS → status $status, using=$using\n${ttsProbe(this)}\nbuild ${BuildConfig.BUILD}"
+            info.append(probeText)
+            probe?.shutdown()
+        }, SAMSUNG_TTS)
     }
 
     /** (Re)connects with the saved choice; refreshes the lists once the engine is up. */
     private fun reopen(fillEngines: Boolean = false, speak: Boolean = false) {
         tts?.shutdown()
         tts = openTts(this) { diagnosis ->
-            info.text = diagnosis
+            info.text = diagnosis + probeText
             if (fillEngines) fillEngines()
             fillVoices()
             if (speak) sample()
@@ -145,13 +173,13 @@ class VoiceActivity : Activity() {
         }
     }
 
-    private fun Spinner.bind(labels: List<String>, selected: Int, onPick: (Int) -> Unit) {
-        adapter = ArrayAdapter(context, android.R.layout.simple_spinner_dropdown_item, labels)
-        setSelection(selected, false)
-        onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(p: AdapterView<*>?, v: View?, i: Int, id: Long) = onPick(i)
-            override fun onNothingSelected(p: AdapterView<*>?) {}
-        }
+    // Radio lists, not spinners: on the test phone the spinners rendered empty (theme text colour).
+    private fun RadioGroup.bind(labels: List<String>, selected: Int, onPick: (Int) -> Unit) {
+        setOnCheckedChangeListener(null)
+        removeAllViews()
+        labels.forEachIndexed { i, l -> addView(RadioButton(context).apply { id = i + 1; text = l; textSize = 15f }) }
+        check(selected + 1)
+        setOnCheckedChangeListener { _, id -> if (id > 0) onPick(id - 1) }
     }
 
     private fun sample() {
@@ -166,6 +194,7 @@ class VoiceActivity : Activity() {
 
     override fun onDestroy() {
         tts?.shutdown()
+        probe?.shutdown()
         super.onDestroy()
     }
 }
