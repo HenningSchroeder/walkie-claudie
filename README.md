@@ -42,7 +42,7 @@ PC에 띄워 둔 Claude Code 세션과 안드로이드 폰으로 **무전기처�
 - 말하기 버튼은 세 가지이고, 앱 화면에서 각각 켜고 끌 수 있습니다.
   - **떠 있는 🎙 버튼**: 누르면 '삑' 소리가 나고 말하면 됩니다. 말을 멈추면 자동으로 보냅니다('삑삑').
   - **음량 버튼 길게**: 누르고 있는 동안 말하고, 떼면 보냅니다. 짧게 누르면 평소처럼 음량이 바뀝니다. 화면이 켜져 있을 때만 되며, 접근성에서 Walkie-Claudie를 켜야 합니다(회색으로 막히면 앱 정보 › ⋮ › 제한된 설정 허용).
-  - **블루투스 이어폰 버튼**: 한 번(또는 두 번) 눌러 시작하고, 다시 누르거나 말을 멈추면 보냅니다. 화면이 꺼져 있어도 됩니다.
+  - **블루투스 이어폰 버튼**: 한 번(또는 두 번) 눌러 시작하고, 다시 누르거나 말을 멈추면 보냅니다. 화면이 꺼져 있어도 됩니다. 음악·팟캐스트 앱이 이어폰 버튼을 가져가면 그 앱이 우선이고, 다시 무전기로 쓰려면 떠 있는 🎙 버튼을 길게 누릅니다.
 - PC가 받으면 '받았어요' 효과음이 납니다. 연결이 끊겨 있으면 다시 연결될 때까지 계속 재전송합니다.
 - 답이 오면 '무전 오는 소리'가 난 뒤 음성으로 읽어 줍니다.
 - 앱 화면에는 연결 상태, 남은 이슈(Claude가 관리하는 할 일 목록), 대화 기록이 나옵니다.
@@ -104,7 +104,7 @@ Talk to a Claude Code session running on your PC from your Android phone, **like
 - Three talk triggers, each switchable in the app:
   - **Floating 🎙 button**: tap, wait for the beep, and speak. It sends when you stop talking (double beep).
   - **Hold a volume key**: talk while holding, release to send. Short presses still change the volume. Screen on only; turn on Walkie-Claudie under Accessibility (greyed out? App info › ⋮ › Allow restricted settings).
-  - **Bluetooth earphone button**: press once (or double-press) to start; press again or stop talking to send. Works with the screen off.
+  - **Bluetooth earphone button**: press once (or double-press) to start; press again or stop talking to send. Works with the screen off. Once a music or podcast app takes the earphone button it keeps it; long-press the floating 🎙 button to take it back.
 - A confirmation sound plays once the PC has the message. If the connection is down, the app keeps retrying until it gets through.
 - When a reply arrives you hear a radio chirp, then the reply is read aloud.
 - The app shows the connection state, open items (a to-do list Claude keeps up to date) and the conversation.

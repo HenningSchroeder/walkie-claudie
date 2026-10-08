@@ -19,7 +19,6 @@ import android.media.session.PlaybackState
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.os.SystemClock
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
@@ -53,7 +52,6 @@ class WalkieService : Service() {
         const val VOLUME = "trig_volume"
         const val EAR_SINGLE = "trig_ear_single"
         const val EAR_DOUBLE = "trig_ear_double"
-        private const val WATCH_MS = 3_000L
 
         /** The running service, for the accessibility service's volume-key hold. Main thread only. */
         var instance: WalkieService? = null
@@ -158,8 +156,14 @@ class WalkieService : Service() {
                     if (abs(dx) + abs(dy) > 24) moved = true
                     if (moved) { lp.x = startX + dx; lp.y = startY + dy; wm.updateViewLayout(v, lp) }
                 }
-                MotionEvent.ACTION_UP ->
-                    if (moved) prefs.edit().putInt("x", lp.x).putInt("y", lp.y).apply() else toggleListening()
+                MotionEvent.ACTION_UP -> when {
+                    moved -> prefs.edit().putInt("x", lp.x).putInt("y", lp.y).apply()
+                    e.eventTime - e.downTime > 600 && session != null -> { // long-press: earphone button back to the walkie
+                        playSilence()
+                        tone.startTone(ToneGenerator.TONE_PROP_ACK, 200)
+                    }
+                    else -> toggleListening()
+                }
             }
             true
         }
@@ -202,36 +206,9 @@ class WalkieService : Service() {
             )
             isActive = true
         }
-        grabKeys()
-        main.postDelayed(::watchPlayback, WATCH_MS)
-    }
-
-    // Android gives media keys to the app that played last. Music playing → its keys; once
-    // nothing has played for a few seconds after someone else played, the walkie takes them back
-    // (so a *paused* music app loses its earphone button; the user agreed, 10/8).
-    private var ourSoundUntil = 0L
-    private var othersPlayed = false
-    private var quietChecks = 0
-
-    private fun grabKeys() {
-        ourSoundUntil = SystemClock.uptimeMillis() + 1_000
+        // Taken once at start. A music/podcast app that plays afterwards keeps the earphone button
+        // (even paused; user's call 10/8) until the user takes it back: long-press the floating button.
         playSilence()
-    }
-
-    private fun watchPlayback() {
-        if (!running) return
-        val active = getSystemService(AudioManager::class.java).isMusicActive
-        val ours = tts.isSpeaking || SystemClock.uptimeMillis() < ourSoundUntil
-        when {
-            active && !ours -> { othersPlayed = true; quietChecks = 0 }
-            !active && othersPlayed && ++quietChecks >= 2 -> { othersPlayed = false; quietChecks = 0; grabKeys() }
-        }
-        main.postDelayed(::watchPlayback, WATCH_MS)
-    }
-
-    private fun beep(type: Int, ms: Int) {
-        ourSoundUntil = SystemClock.uptimeMillis() + ms + 500
-        tone.startTone(type, ms)
     }
 
     // --- speech in ---
@@ -244,17 +221,17 @@ class WalkieService : Service() {
         recognizer = r
         r.setRecognitionListener(object : RecognitionListener {
             override fun onReadyForSpeech(params: Bundle?) {
-                beep(ToneGenerator.TONE_PROP_BEEP, 120)
+                tone.startTone(ToneGenerator.TONE_PROP_BEEP, 120)
                 setButtonColor(true)
             }
             override fun onResults(results: Bundle) {
                 val text = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull()
                 endListening()
-                if (text.isNullOrBlank()) beep(ToneGenerator.TONE_PROP_NACK, 300) else send(text)
+                if (text.isNullOrBlank()) tone.startTone(ToneGenerator.TONE_PROP_NACK, 300) else send(text)
             }
             override fun onError(error: Int) {
                 endListening()
-                beep(ToneGenerator.TONE_PROP_NACK, 300)
+                tone.startTone(ToneGenerator.TONE_PROP_NACK, 300)
                 setStatus(Talk.status, getString(R.string.err_speech, error))
             }
             override fun onBeginningOfSpeech() {}
@@ -287,7 +264,7 @@ class WalkieService : Service() {
         val line = Talk.Line(UUID.randomUUID().toString(), text, Talk.State.SENDING)
         Talk.lines.add(line)
         Talk.changed()
-        beep(ToneGenerator.TONE_PROP_BEEP2, 200)
+        tone.startTone(ToneGenerator.TONE_PROP_BEEP2, 200)
         outbox.put(line)
     }
 
@@ -322,7 +299,7 @@ class WalkieService : Service() {
                     http("POST", "/say", JSONObject().put("id", line.id).put("text", line.text).toString())
                     main.post {
                         if (line.state == Talk.State.SENDING) line.state = Talk.State.RECEIVED
-                        beep(ToneGenerator.TONE_PROP_ACK, 200)
+                        tone.startTone(ToneGenerator.TONE_PROP_ACK, 200)
                         Talk.changed()
                     }
                     break
@@ -330,7 +307,7 @@ class WalkieService : Service() {
                     val now = System.currentTimeMillis()
                     if (firstFailure == 0L) firstFailure = now
                     // One "couldn't send" sound once it has been failing for a while; keep retrying silently.
-                    else if (now - firstFailure in 30_000..33_000) main.post { beep(ToneGenerator.TONE_PROP_NACK, 500) }
+                    else if (now - firstFailure in 30_000..33_000) main.post { tone.startTone(ToneGenerator.TONE_PROP_NACK, 500) }
                     setStatus(R.string.st_offline, "${e.message} · ${getString(R.string.waiting, outbox.size + 1)}")
                     Thread.sleep(3_000)
                 }
@@ -376,7 +353,7 @@ class WalkieService : Service() {
     private fun speakWhenFree(id: String, text: String) {
         if (!running) return
         if (inCall()) return run { main.postDelayed({ speakWhenFree(id, text) }, 2_000) }
-        beep(ToneGenerator.TONE_SUP_RADIO_ACK, 300)
+        tone.startTone(ToneGenerator.TONE_SUP_RADIO_ACK, 300)
         main.postDelayed({ tts.speak(text, TextToSpeech.QUEUE_ADD, null, id) }, 400)
     }
 
