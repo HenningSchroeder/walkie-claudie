@@ -94,7 +94,7 @@ class MainActivity : Activity() {
     }
 
     private fun render() {
-        status.text = getString(Talk.status) + if (Talk.statusDetail.isEmpty()) "" else " · ${Talk.statusDetail}"
+        status.text = listOf(getString(Talk.status), Talk.statusDetail, Talk.usage).filter { it.isNotEmpty() }.joinToString(" · ")
         issues.text = if (Talk.issues.isEmpty()) getString(R.string.no_issues)
             else getString(R.string.issues) + "\n" + Talk.issues.joinToString("\n") { "• $it" }
         talk.text = Talk.lines.asReversed().joinToString("\n\n") {

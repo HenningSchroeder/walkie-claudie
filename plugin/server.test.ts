@@ -14,16 +14,31 @@ test('isPrivate', () => {
     expect(isPrivate(ip)).toBe(false)
 })
 
-test('say → channel notification, reply → poll', async () => {
+async function start(enable: boolean) {
   const dir = mkdtempSync(join(tmpdir(), 'walkie-'))
   const port = 17700 + Math.floor(Math.random() * 1000)
   const client = new Client({ name: 'test', version: '0' })
   const inbound: any[] = []
   client.fallbackNotificationHandler = async n => { inbound.push(n) }
+  const env = { ...process.env, WALKIE_STATE_DIR: dir, WALKIE_PORT: String(port), WALKIE_ENABLE: enable ? '1' : '' }
   await client.connect(new StdioClientTransport({
-    command: 'bun', args: [join(import.meta.dir, 'server.ts')],
-    env: { ...process.env, WALKIE_STATE_DIR: dir, WALKIE_PORT: String(port) } as Record<string, string>,
+    command: 'bun', args: [join(import.meta.dir, 'server.ts')], env: env as Record<string, string>,
   }))
+  return { dir, port, client, inbound }
+}
+
+test('inert without WALKIE_ENABLE: no tools, no port', async () => {
+  const { port, client } = await start(false)
+  try {
+    expect((await client.listTools()).tools).toEqual([])
+    expect(await fetch(`http://127.0.0.1:${port}/poll`).catch(() => null)).toBeNull()
+  } finally {
+    await client.close()
+  }
+})
+
+test('say → channel notification, reply → poll', async () => {
+  const { dir, port, client, inbound } = await start(true)
   const base = `http://127.0.0.1:${port}`
   const auth = { authorization: `Bearer ${readFileSync(join(dir, 'key'), 'utf8').trim()}` }
   try {
@@ -42,10 +57,16 @@ test('say → channel notification, reply → poll', async () => {
     await client.callTool({ name: 'set_issues', arguments: { items: ['A 승인 대기'] } })
     expect((await pending).issues).toEqual(['A 승인 대기']) // long-poll woke on issues change
 
+    // statusline.ts saves the status JSON; poll passes the usage limits through
+    const status = JSON.stringify({ model: {}, rate_limits: { five_hour: { used_percentage: 23.4, resets_at: 1 } } })
+    const sl = Bun.spawnSync(['bun', join(import.meta.dir, 'statusline.ts')], { stdin: Buffer.from(status), env: { ...process.env, WALKIE_STATE_DIR: dir } })
+    expect(sl.stdout.toString().trim()).toBe('5h 23% · 7d –')
+
     await client.callTool({ name: 'reply', arguments: { text: '네, 받았어요', reply_to: 'm1' } })
     const got = await (await fetch(`${base}/poll?after=0`, { headers: auth })).json()
     expect(got.replies).toHaveLength(1)
     expect(got.replies[0]).toMatchObject({ text: '네, 받았어요', reply_to: 'm1' })
+    expect(got.usage.five_hour.used_percentage).toBe(23.4)
     const again = await (await fetch(`${base}/poll?after=${got.replies[0].seq}`, { headers: auth, signal: AbortSignal.timeout(300) }).catch(() => null))
     expect(again).toBeNull() // nothing new → still waiting
   } finally {

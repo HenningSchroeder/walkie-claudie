@@ -10,6 +10,7 @@ object Talk {
     var issues: List<String> = emptyList()
     var status = R.string.st_off
     var statusDetail = ""
+    var usage = ""
     var onChange: (() -> Unit)? = null
 
     fun changed() = onChange?.invoke()

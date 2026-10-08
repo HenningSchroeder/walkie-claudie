@@ -12,6 +12,10 @@
  *
  * Every request needs `Authorization: Bearer <key>`. The key is generated on first
  * run in ~/.claude/channels/walkie/key. Requests from public IPs are refused.
+ *
+ * Installing the plugin starts this server in every Claude Code session on the machine.
+ * Only the session launched with WALKIE_ENABLE=1 opens the port and exposes tools;
+ * everywhere else it stays inert, so sessions never fight over the port or the phone.
  */
 
 import { Server } from '@modelcontextprotocol/sdk/server/index.js'
@@ -25,6 +29,7 @@ import { join } from 'path'
 const STATE_DIR = process.env.WALKIE_STATE_DIR
   ?? join(process.env.CLAUDE_CONFIG_DIR ?? join(homedir(), '.claude'), 'channels', 'walkie')
 const PORT = Number(process.env.WALKIE_PORT ?? 7700)
+const ENABLED = process.env.WALKIE_ENABLE === '1'
 const POLL_MS = 25_000
 
 mkdirSync(STATE_DIR, { recursive: true, mode: 0o700 })
@@ -67,13 +72,23 @@ function authorized(req: Request): boolean {
   return got.length === keyBuf.length && timingSafeEqual(got, keyBuf)
 }
 
+/** Plan usage limits, as last written by statusline.ts (null when it isn't installed). */
+function usage(): unknown {
+  try {
+    const { five_hour, seven_day } = JSON.parse(readFileSync(join(STATE_DIR, 'status.json'), 'utf8')).rate_limits ?? {}
+    return { five_hour, seven_day }
+  } catch {
+    return null
+  }
+}
+
 const json = (body: unknown, status = 200) => Response.json(body, { status })
 
 const mcp = new Server(
   { name: 'walkie', version: '0.1.0' },
   {
-    capabilities: { tools: {}, experimental: { 'claude/channel': {} } },
-    instructions: [
+    capabilities: { tools: {}, experimental: ENABLED ? { 'claude/channel': {} } : {} },
+    instructions: !ENABLED ? undefined : [
       'The sender talks to you from the Walkie-Claudie phone app, usually hands-busy (e.g. delivering parcels) with earphones in. They never see this session: anything meant for them must go through the reply tool, and it is read aloud by text-to-speech.',
       '',
       'Messages arrive as <channel source="walkie" msg_id="..." ts="...">. The text comes from on-device speech recognition and may contain misheard words.',
@@ -89,7 +104,7 @@ const mcp = new Server(
 )
 
 mcp.setRequestHandler(ListToolsRequestSchema, async () => ({
-  tools: [
+  tools: !ENABLED ? [] : [
     {
       name: 'reply',
       description: 'Send a reply to the phone; it is spoken aloud there. Keep it short and speakable.',
@@ -173,7 +188,7 @@ async function handle(req: Request, ip: string): Promise<Response> {
         req.signal.addEventListener('abort', done)
       })
     }
-    return json({ replies: outbox.filter(r => r.seq > after), issues })
+    return json({ replies: outbox.filter(r => r.seq > after), issues, usage: usage() })
   }
 
   return json({ error: 'not found' }, 404)
@@ -181,18 +196,22 @@ async function handle(req: Request, ip: string): Promise<Response> {
 
 if (import.meta.main) {
   await mcp.connect(new StdioServerTransport())
+  if (!ENABLED) {
+    // Stay connected and quiet; the process exits when Claude Code closes stdin.
+    process.stderr.write('walkie channel: inactive in this session (set WALKIE_ENABLE=1 to use it)\n')
+  } else {
+    const http = Bun.serve({
+      port: PORT,
+      hostname: '0.0.0.0',
+      idleTimeout: 60, // must outlast a long-poll
+      fetch: (req, server) => handle(req, server.requestIP(req)?.address ?? ''),
+    })
+    process.stderr.write(`walkie channel: listening on :${http.port}, key in ${KEY_FILE}\n`)
 
-  const http = Bun.serve({
-    port: PORT,
-    hostname: '0.0.0.0',
-    idleTimeout: 60, // must outlast a long-poll
-    fetch: (req, server) => handle(req, server.requestIP(req)?.address ?? ''),
-  })
-  process.stderr.write(`walkie channel: listening on :${http.port}, key in ${KEY_FILE}\n`)
-
-  // Claude Code closes stdin when the session ends; free the port for the next one.
-  const shutdown = () => { http.stop(true); process.exit(0) }
-  process.stdin.on('end', shutdown)
-  process.stdin.on('close', shutdown)
-  process.on('SIGTERM', shutdown)
+    // Claude Code closes stdin when the session ends; free the port for the next one.
+    const shutdown = () => { http.stop(true); process.exit(0) }
+    process.stdin.on('end', shutdown)
+    process.stdin.on('close', shutdown)
+    process.on('SIGTERM', shutdown)
+  }
 }

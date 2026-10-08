@@ -249,7 +249,11 @@ class WalkieService : Service() {
                     main.post { onReply(r.getLong("seq").toString(), r.getString("text"), r.optString("reply_to")) }
                 }
                 prefs.edit().putLong("cursor", cursor).apply()
-                main.post { Talk.issues = issues; Talk.changed() }
+                val usage = res.optJSONObject("usage")?.let { u ->
+                    fun pct(k: String) = u.optJSONObject(k)?.let { "${it.getDouble("used_percentage").toInt()}%" } ?: "–"
+                    "5h ${pct("five_hour")} · 7d ${pct("seven_day")}"
+                } ?: ""
+                main.post { Talk.issues = issues; Talk.usage = usage; Talk.changed() }
             } catch (e: Exception) {
                 if (!running) return
                 setStatus(R.string.st_offline, e.message ?: "")
