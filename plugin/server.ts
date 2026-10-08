@@ -8,7 +8,8 @@
  *   POST /say   {id, text}   → delivered to the session, then 200 = "received" ack.
  *                              Retries with the same id are acked but not re-delivered.
  *   GET  /poll?after=<seq>   → long-poll (≤25 s) for replies with seq > after,
- *                              plus the current open-items list.
+ *                              plus the current open-items list. `&wait=0` answers at once
+ *                              (the phone's first poll, so it shows "connected" right away).
  *
  * Every request needs `Authorization: Bearer <key>`. The key is generated on first
  * run in ~/.claude/channels/walkie/key. Requests from public IPs are refused.
@@ -248,7 +249,7 @@ async function handle(req: Request, ip: string): Promise<Response> {
     const after = Number(url.searchParams.get('after') ?? 0)
     // Usage is only fetched while a phone is polling, at most every few minutes.
     if (Date.now() - usageAt > USAGE_EVERY_MS) void refreshUsage()
-    if (!outbox.some(r => r.seq > after)) {
+    if (url.searchParams.get('wait') !== '0' && !outbox.some(r => r.seq > after)) {
       await new Promise<void>(resolve => {
         const done = () => { clearTimeout(timer); waiters.delete(done); resolve() }
         const timer = setTimeout(done, POLL_MS)

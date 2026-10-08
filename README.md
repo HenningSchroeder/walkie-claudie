@@ -35,16 +35,16 @@ PC에 띄워 둔 Claude Code 세션과 안드로이드 폰으로 **무전기처�
    - Claude Code 채널은 아직 연구 미리보기라, Anthropic 허용 목록에 없는 채널은 이 개발용 플래그로만 연결됩니다. 시작할 때마다 경고 창이 뜨며, Enter를 누르면 넘어갑니다. 공식 플러그인 디렉터리 등재를 추진할 예정이고, 등재되면 `--channels plugin:walkie@...`로 바뀝니다.
    - 플러그인은 PC의 **모든** Claude Code 세션에서 켜집니다. 하지만 `WALKIE_ENABLE=1`이 없는 세션에서는 포트도 도구도 열지 않고 조용히 있습니다. 그래서 여러 세션이 폰을 두고 다투지 않습니다.
 3. 앱 APK를 폰에 설치합니다([Releases](../../releases), 또는 아래 '직접 빌드').
-4. PC 세션에서 `/walkie:pair`를 입력하면 QR이 나옵니다. 앱에서 **QR 스캔**으로 찍습니다.
+4. PC 세션에서 `/walkie:pair`를 입력하면 QR이 나옵니다. 앱의 **[설정] › 키 › QR**로 찍습니다.
    - QR이 깨져 보이면 터미널에서 직접 `bun <플러그인 경로>/pair.ts`를 실행하세요.
-   - QR을 찍을 수 없으면(예: 같은 폰으로 받음) `pair.ts --text`가 출력하는 연결 문구 한 줄을 앱의 주소 칸에 붙여 넣으세요. 주소와 키가 자동으로 채워집니다.
-5. 처음 시작할 때 마이크, 알림, '다른 앱 위에 표시' 권한을 허용합니다.
+   - QR을 찍을 수 없으면(예: 같은 폰으로 받음) `pair.ts --text`가 출력하는 연결 문구 한 줄을 복사한 뒤 앱의 **[설정] › PC 주소 › 붙여넣기**를 누르세요. 주소와 키가 함께 채워집니다.
+5. 첫 화면의 **[켜기]**를 누릅니다. 처음 시작할 때 마이크, 알림, '다른 앱 위에 표시' 권한을 허용합니다.
 
 ### 사용
-- 말하기 버튼은 세 가지이고, 앱 화면에서 각각 켜고 끌 수 있습니다.
-  - **떠 있는 🎙 버튼**: 누르면 '삑' 소리가 나고 말하면 됩니다. 말을 멈추면 자동으로 보냅니다('삑삑').
+- 말하기 버튼은 세 가지이고, [설정]에서 각각 켜고 끌 수 있습니다.
+  - **떠 있는 [말하기] 버튼**: 누르면 '삑' 소리가 나고 말하면 됩니다. 말을 멈추면 자동으로 보냅니다('삑삑').
   - **음량 버튼 길게**: 누르고 있는 동안 말하고, 떼면 보냅니다. 짧게 누르면 평소처럼 음량이 바뀝니다. 화면이 켜져 있을 때만 되며, 접근성에서 Walkie-Claudie를 켜야 합니다(회색으로 막히면 앱 정보 › ⋮ › 제한된 설정 허용).
-  - **블루투스 이어폰 버튼**: 한 번(또는 두 번) 눌러 시작하고, 다시 누르거나 말을 멈추면 보냅니다. 화면이 꺼져 있어도 됩니다. 음악·팟캐스트 앱이 이어폰 버튼을 가져가면 그 앱이 우선이고, 다시 무전기로 쓰려면 떠 있는 🎙 버튼을 길게 누릅니다.
+  - **블루투스 이어폰 버튼**: 한 번(또는 두 번) 눌러 시작하고, 다시 누르거나 말을 멈추면 보냅니다. 화면이 꺼져 있어도 됩니다. 음악·팟캐스트 앱이 이어폰 버튼을 가져가면 그 앱이 우선이고, 다시 무전기로 쓰려면 떠 있는 [말하기] 버튼을 길게 누릅니다.
 - PC가 받으면 '받았어요' 효과음이 납니다. 연결이 끊겨 있으면 다시 연결될 때까지 계속 재전송합니다.
 - 답이 오면 '무전 오는 소리'가 난 뒤 음성으로 읽어 줍니다.
 - 답을 읽는 목소리는 앱의 **목소리** 화면에서 엔진·목소리·속도를 고를 수 있습니다(고르면 바로 미리 듣기).
@@ -66,7 +66,7 @@ PC에 띄워 둔 Claude Code 세션과 안드로이드 폰으로 **무전기처�
 ### 문제 해결
 - **앱이 계속 '끊김'**: 폰에서 PC 주소가 닿는지(같은 Wi-Fi 또는 Tailscale 켜짐), PC 방화벽이 포트 7700을 막지 않는지, 세션이 `WALKIE_ENABLE=1`로 떴는지 확인하세요.
 - **'HTTP 401'**: 키가 다릅니다. `/walkie:pair`로 다시 연결하세요.
-- **이어폰 버튼이 안 먹음**: 음악·팟캐스트 앱이 버튼을 가져간 상태입니다. 떠 있는 🎙 버튼을 길게 누르세요.
+- **이어폰 버튼이 안 먹음**: 음악·팟캐스트 앱이 버튼을 가져간 상태입니다. 떠 있는 [말하기] 버튼을 길게 누르세요.
 - **접근성 스위치가 회색**: 직접 설치한 앱은 앱 정보 › ⋮ › '제한된 설정 허용'을 먼저 해야 합니다.
 - 앱의 **버튼 테스트** 화면에서 내 이어폰·음량 버튼이 어떤 키로 잡히는지 볼 수 있습니다.
 
@@ -113,16 +113,16 @@ Talk to a Claude Code session running on your PC from your Android phone, **like
    - Claude Code channels are a research preview: channels not on Anthropic's allowlist attach only through this development flag. A warning appears on every start; press Enter to continue. We plan to submit to the official plugin directory; once listed, this becomes `--channels plugin:walkie@...`.
    - The plugin starts in **every** Claude Code session on the PC, but stays inert (no port, no tools) unless `WALKIE_ENABLE=1` is set, so sessions never fight over the phone.
 3. Install the app APK ([Releases](../../releases), or see "Build" below).
-4. Run `/walkie:pair` in the session to show a QR code, then tap **Scan QR** in the app.
+4. Run `/walkie:pair` in the session to show a QR code, then scan it in the app under **Settings › Key › QR**.
    - If the QR looks broken, run `bun <plugin path>/pair.ts` yourself in a terminal.
-   - Can't scan it (e.g. it's on the same phone)? Paste the line printed by `pair.ts --text` into the app's address box; the address and key fill in automatically.
-5. On first start, allow microphone, notifications and "display over other apps".
+   - Can't scan it (e.g. it's on the same phone)? Copy the line printed by `pair.ts --text`, then tap **Settings › PC address › Paste** in the app; the address and key fill in together.
+5. Tap **On** on the main screen. On first start, allow microphone, notifications and "display over other apps".
 
 ### Usage
-- Three talk triggers, each switchable in the app:
-  - **Floating 🎙 button**: tap, wait for the beep, and speak. It sends when you stop talking (double beep).
+- Three talk triggers, each switchable in Settings:
+  - **Floating Talk button**: tap, wait for the beep, and speak. It sends when you stop talking (double beep).
   - **Hold a volume key**: talk while holding, release to send. Short presses still change the volume. Screen on only; turn on Walkie-Claudie under Accessibility (greyed out? App info › ⋮ › Allow restricted settings).
-  - **Bluetooth earphone button**: press once (or double-press) to start; press again or stop talking to send. Works with the screen off. Once a music or podcast app takes the earphone button it keeps it; long-press the floating 🎙 button to take it back.
+  - **Bluetooth earphone button**: press once (or double-press) to start; press again or stop talking to send. Works with the screen off. Once a music or podcast app takes the earphone button it keeps it; long-press the floating Talk button to take it back.
 - A confirmation sound plays once the PC has the message. If the connection is down, the app keeps retrying until it gets through.
 - When a reply arrives you hear a radio chirp, then the reply is read aloud.
 - Pick the reading voice in the app's **Voice** screen: engine, voice and speed, with a sample on every change.
@@ -144,7 +144,7 @@ Talk to a Claude Code session running on your PC from your Android phone, **like
 ### Troubleshooting
 - **App stays "Disconnected"**: check the phone can reach the PC (same Wi-Fi or Tailscale on), the PC firewall allows port 7700, and the session was started with `WALKIE_ENABLE=1`.
 - **"HTTP 401"**: wrong key. Pair again with `/walkie:pair`.
-- **Earphone button does nothing**: a music or podcast app has it. Long-press the floating 🎙 button.
+- **Earphone button does nothing**: a music or podcast app has it. Long-press the floating Talk button.
 - **Accessibility switch greyed out**: for sideloaded apps, App info › ⋮ › Allow restricted settings first.
 - The app's **Button test** screen shows which keys your earphones and volume buttons send.
 

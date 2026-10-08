@@ -18,7 +18,13 @@ object Talk {
     var issues: List<String> = emptyList()
     var status = R.string.st_off
     var statusDetail = ""
-    var usage = ""
+    /** Plan usage, % used; -1 = unknown. */
+    var usage5h = -1
+    var usage7d = -1
+    /** Recording right now; [hold] = a held volume key (release sends) rather than a toggle; [partial] = words so far. */
+    var listening = false
+    var hold = false
+    var partial = ""
     var onChange: (() -> Unit)? = null
     private var file: File? = null
 
@@ -34,8 +40,11 @@ object Talk {
 
     fun changed() {
         save()
-        onChange?.invoke()
+        refresh()
     }
+
+    /** Redraw only, for state that isn't saved. */
+    fun refresh() = onChange?.invoke()
 
     private fun save() {
         val f = file ?: return

@@ -10,7 +10,6 @@ import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.ServiceInfo
 import android.graphics.PixelFormat
-import android.graphics.drawable.GradientDrawable
 import android.media.AudioManager
 import android.media.ToneGenerator
 import android.media.session.MediaSession
@@ -40,11 +39,12 @@ import kotlin.math.abs
 /**
  * The walkie-talkie: floating push-to-talk button, speech recognition, sending to the PC
  * channel, and long-polling for replies that are spoken aloud.
- * Start with action [TALK] to toggle listening (used by the in-app button).
+ * Start with action [TALK] to toggle listening (used by the in-app button), [CANCEL] to drop a recording.
  */
 class WalkieService : Service() {
     companion object {
         const val TALK = "talk"
+        const val CANCEL = "cancel"
         const val PREFS = "walkie"
         // Trigger switches (all on by default except earphone double-press).
         const val FLOATING = "trig_floating"
@@ -90,6 +90,7 @@ class WalkieService : Service() {
         key = prefs.getString("key", "")!!
         tone = ToneGenerator(AudioManager.STREAM_MUSIC, 90)
         tts = openTts(this) {}
+        setStatus(R.string.st_connecting)
         if (prefs.getBoolean(FLOATING, true) && Settings.canDrawOverlays(this)) addButton() // the in-app talk button works regardless
         addEarphone()
         instance = this
@@ -102,7 +103,10 @@ class WalkieService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        if (intent?.action == TALK) toggleListening()
+        when (intent?.action) {
+            TALK -> toggleListening()
+            CANCEL -> { recognizer?.cancel(); endListening() }
+        }
         return START_NOT_STICKY
     }
 
@@ -132,23 +136,15 @@ class WalkieService : Service() {
     @SuppressLint("ClickableViewAccessibility")
     private fun addButton() {
         wm = getSystemService(WindowManager::class.java)
-        val size = (64 * resources.displayMetrics.density).toInt()
         val lp = WindowManager.LayoutParams(
-            size, size, WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+            dpi(64), dpi(50), WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE, PixelFormat.TRANSLUCENT,
         ).apply {
             gravity = Gravity.TOP or Gravity.START
             x = prefs.getInt("x", 0)
             y = prefs.getInt("y", 600)
         }
-        button = TextView(this).apply {
-            text = "🎙"
-            textSize = 28f
-            gravity = Gravity.CENTER
-            contentDescription = getString(R.string.talk)
-            background = GradientDrawable().apply { shape = GradientDrawable.OVAL }
-        }
-        setButtonColor(false)
+        button = key(R.string.talk) {}.apply { textSize = 12f }
         var downX = 0f; var downY = 0f; var startX = 0; var startY = 0; var moved = false
         button.setOnTouchListener { v, e ->
             when (e.action) {
@@ -172,9 +168,11 @@ class WalkieService : Service() {
         wm.addView(button, lp)
     }
 
-    private fun setButtonColor(listening: Boolean) {
-        if (!::button.isInitialized) return
-        (button.background as GradientDrawable).setColor(if (listening) 0xE0D32F2F.toInt() else 0xC0424242.toInt())
+    private fun setListening(on: Boolean) {
+        Talk.listening = on
+        if (!on) { Talk.hold = false; Talk.partial = "" }
+        Talk.refresh()
+        if (::button.isInitialized) (button.background as KeyDrawable).face = if (on) Ui.LED_REC else Ui.KEY
     }
 
     // --- earphone buttons ---
@@ -221,10 +219,10 @@ class WalkieService : Service() {
         tts.stop() // talking over a reply interrupts it
         val r = SpeechRecognizer.createSpeechRecognizer(this)
         recognizer = r
+        setListening(true)
         r.setRecognitionListener(object : RecognitionListener {
             override fun onReadyForSpeech(params: Bundle?) {
                 tone.startTone(ToneGenerator.TONE_PROP_BEEP, 120)
-                setButtonColor(true)
             }
             override fun onResults(results: Bundle) {
                 val text = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull()
@@ -240,11 +238,15 @@ class WalkieService : Service() {
             override fun onRmsChanged(rmsdB: Float) {}
             override fun onBufferReceived(buffer: ByteArray?) {}
             override fun onEndOfSpeech() {}
-            override fun onPartialResults(partialResults: Bundle?) {}
+            override fun onPartialResults(partialResults: Bundle?) {
+                Talk.partial = partialResults?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull() ?: return
+                Talk.refresh()
+            }
             override fun onEvent(eventType: Int, params: Bundle?) {}
         })
         r.startListening(Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
-            .putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM))
+            .putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+            .putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true))
     }
 
     /** Picks up a voice changed in VoiceActivity. */
@@ -256,6 +258,8 @@ class WalkieService : Service() {
     /** Volume key held past the long-press threshold: start talking; [holdEnd] on release sends. */
     fun holdStart() {
         if (recognizer == null) toggleListening()
+        Talk.hold = true
+        Talk.refresh()
     }
 
     fun holdEnd() {
@@ -265,7 +269,7 @@ class WalkieService : Service() {
     private fun endListening() {
         recognizer?.destroy()
         recognizer = null
-        setButtonColor(false)
+        setListening(false)
     }
 
     private fun send(text: String) {
@@ -325,9 +329,11 @@ class WalkieService : Service() {
 
     private fun pollLoop() {
         var cursor = prefs.getLong("cursor", 0)
+        var wait = "&wait=0" // first poll after (re)connecting answers at once
         while (running) {
             try {
-                val res = JSONObject(http("GET", "/poll?after=$cursor", readTimeoutMs = 40_000))
+                val res = JSONObject(http("GET", "/poll?after=$cursor$wait", readTimeoutMs = 40_000))
+                wait = ""
                 setStatus(R.string.st_connected)
                 val replies = res.getJSONArray("replies")
                 val issues = res.getJSONArray("issues").let { a -> List(a.length()) { a.getString(it) } }
@@ -337,14 +343,14 @@ class WalkieService : Service() {
                     main.post { onReply(r.getLong("seq").toString(), r.getString("text"), r.optString("reply_to")) }
                 }
                 prefs.edit().putLong("cursor", cursor).apply()
-                val usage = res.optJSONObject("usage")?.let { u ->
-                    fun pct(k: String) = u.optJSONObject(k)?.let { "${it.getDouble("used_percentage").toInt()}%" } ?: "–"
-                    "5h ${pct("five_hour")} · 7d ${pct("seven_day")}"
-                } ?: ""
-                main.post { Talk.issues = issues; Talk.usage = usage; Talk.changed() }
+                val usage = res.optJSONObject("usage")
+                fun pct(k: String) = usage?.optJSONObject(k)?.optDouble("used_percentage")?.takeIf { !it.isNaN() }?.toInt() ?: -1
+                val u5 = pct("five_hour"); val u7 = pct("seven_day")
+                main.post { Talk.issues = issues; Talk.usage5h = u5; Talk.usage7d = u7; Talk.changed() }
             } catch (e: Exception) {
                 if (!running) return
                 setStatus(R.string.st_offline, e.message ?: "")
+                wait = "&wait=0"
                 Thread.sleep(3_000)
             }
         }

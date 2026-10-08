@@ -81,6 +81,8 @@ test('say → channel notification, reply → poll', async () => {
     expect(got.usage.five_hour.used_percentage).toBe(23.4)
     const again = await (await fetch(`${base}/poll?after=${got.replies[0].seq}`, { headers: auth, signal: AbortSignal.timeout(300) }).catch(() => null))
     expect(again).toBeNull() // nothing new → still waiting
+    const quick = await (await fetch(`${base}/poll?after=${got.replies[0].seq}&wait=0`, { headers: auth, signal: AbortSignal.timeout(300) })).json()
+    expect(quick.replies).toHaveLength(0) // wait=0 → answers at once
   } finally {
     await client.close()
   }
