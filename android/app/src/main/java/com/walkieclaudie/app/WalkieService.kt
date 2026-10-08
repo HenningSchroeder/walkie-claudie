@@ -13,6 +13,8 @@ import android.graphics.drawable.GradientDrawable
 import android.media.AudioAttributes
 import android.media.AudioManager
 import android.media.ToneGenerator
+import android.media.session.MediaSession
+import android.media.session.PlaybackState
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -22,6 +24,7 @@ import android.speech.SpeechRecognizer
 import android.provider.Settings
 import android.speech.tts.TextToSpeech
 import android.view.Gravity
+import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.WindowManager
 import android.widget.TextView
@@ -43,6 +46,14 @@ class WalkieService : Service() {
     companion object {
         const val TALK = "talk"
         const val PREFS = "walkie"
+        // Trigger switches (all on by default except earphone double-press).
+        const val FLOATING = "trig_floating"
+        const val VOLUME = "trig_volume"
+        const val EAR_SINGLE = "trig_ear_single"
+        const val EAR_DOUBLE = "trig_ear_double"
+
+        /** The running service, for the accessibility service's volume-key hold. Main thread only. */
+        var instance: WalkieService? = null
     }
 
     private val main = Handler(Looper.getMainLooper())
@@ -57,6 +68,7 @@ class WalkieService : Service() {
     private var recognizer: SpeechRecognizer? = null
     private lateinit var wm: WindowManager
     private lateinit var button: TextView
+    private var session: MediaSession? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -67,7 +79,7 @@ class WalkieService : Service() {
             .setContentText(getString(R.string.notif_walkie))
             .setContentIntent(android.app.PendingIntent.getActivity(this, 0, Intent(this, MainActivity::class.java), android.app.PendingIntent.FLAG_IMMUTABLE))
             .build()
-        startForeground(2, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE)
+        startForeground(2, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE or ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK)
 
         prefs = getSharedPreferences(PREFS, MODE_PRIVATE)
         baseUrl = prefs.getString("url", "")!!.trimEnd('/')
@@ -75,7 +87,9 @@ class WalkieService : Service() {
         tone = ToneGenerator(AudioManager.STREAM_MUSIC, 90)
         tts = TextToSpeech(this) {}
         tts.setAudioAttributes(AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_ASSISTANT).setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build())
-        if (Settings.canDrawOverlays(this)) addButton() // the in-app talk button still works without it
+        if (prefs.getBoolean(FLOATING, true) && Settings.canDrawOverlays(this)) addButton() // the in-app talk button works regardless
+        addEarphone()
+        instance = this
         Talk.lines.filter { it.state == Talk.State.SENDING }.forEach(outbox::put) // unsent from last time
         thread(isDaemon = true, name = "walkie-send") { sendLoop() }
         thread(isDaemon = true, name = "walkie-poll") { pollLoop() }
@@ -87,7 +101,9 @@ class WalkieService : Service() {
     }
 
     override fun onDestroy() {
+        instance = null
         running = false
+        session?.release()
         recognizer?.destroy()
         if (::button.isInitialized) wm.removeView(button)
         tts.shutdown()
@@ -142,6 +158,41 @@ class WalkieService : Service() {
         (button.background as GradientDrawable).setColor(if (listening) 0xE0D32F2F.toInt() else 0xC0424242.toInt())
     }
 
+    // --- earphone buttons ---
+
+    /** Earphones send no hold time (measured on a test earphone), so a press toggles talking. */
+    private fun addEarphone() {
+        val keys = buildSet {
+            if (prefs.getBoolean(EAR_SINGLE, true)) addAll(listOf(
+                KeyEvent.KEYCODE_MEDIA_PLAY, KeyEvent.KEYCODE_MEDIA_PAUSE,
+                KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE, KeyEvent.KEYCODE_HEADSETHOOK,
+            ))
+            if (prefs.getBoolean(EAR_DOUBLE, false)) add(KeyEvent.KEYCODE_MEDIA_NEXT)
+        }
+        if (keys.isEmpty()) return
+        session = MediaSession(this, "walkie").apply {
+            setCallback(object : MediaSession.Callback() {
+                override fun onMediaButtonEvent(intent: Intent): Boolean {
+                    @Suppress("DEPRECATION")
+                    val e = intent.getParcelableExtra<KeyEvent>(Intent.EXTRA_KEY_EVENT) ?: return false
+                    if (e.keyCode !in keys) return false
+                    if (e.action == KeyEvent.ACTION_DOWN && e.repeatCount == 0) toggleListening()
+                    return true
+                }
+            })
+            setPlaybackState(
+                PlaybackState.Builder()
+                    .setActions(PlaybackState.ACTION_PLAY_PAUSE or PlaybackState.ACTION_PLAY or PlaybackState.ACTION_PAUSE or
+                        PlaybackState.ACTION_SKIP_TO_NEXT)
+                    .setState(PlaybackState.STATE_PLAYING, 0, 1f)
+                    .build()
+            )
+            isActive = true
+        }
+        // ponytail: grabs the keys once at start; if music plays later the keys go to that app until restart.
+        playSilence()
+    }
+
     // --- speech in ---
 
     private fun toggleListening() {
@@ -156,11 +207,11 @@ class WalkieService : Service() {
             }
             override fun onResults(results: Bundle) {
                 val text = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull()
-                stopListening()
+                endListening()
                 if (text.isNullOrBlank()) tone.startTone(ToneGenerator.TONE_PROP_NACK, 300) else send(text)
             }
             override fun onError(error: Int) {
-                stopListening()
+                endListening()
                 tone.startTone(ToneGenerator.TONE_PROP_NACK, 300)
                 setStatus(Talk.status, getString(R.string.err_speech, error))
             }
@@ -175,7 +226,16 @@ class WalkieService : Service() {
             .putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM))
     }
 
-    private fun stopListening() {
+    /** Volume key held past the long-press threshold: start talking; [holdEnd] on release sends. */
+    fun holdStart() {
+        if (recognizer == null) toggleListening()
+    }
+
+    fun holdEnd() {
+        recognizer?.stopListening() // ends recording; results arrive in onResults
+    }
+
+    private fun endListening() {
         recognizer?.destroy()
         recognizer = null
         setButtonColor(false)

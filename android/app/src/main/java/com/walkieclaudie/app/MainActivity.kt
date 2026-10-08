@@ -13,6 +13,7 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.ScrollView
+import android.widget.Switch
 import android.widget.TextView
 import android.widget.Toast
 import com.google.mlkit.vision.codescanner.GmsBarcodeScanning
@@ -26,7 +27,6 @@ class MainActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        logLaunch(intent)
         requestPermissions(arrayOf(Manifest.permission.RECORD_AUDIO, Manifest.permission.POST_NOTIFICATIONS), 0)
         val prefs = getSharedPreferences(WalkieService.PREFS, MODE_PRIVATE)
 
@@ -66,6 +66,28 @@ class MainActivity : Activity() {
         }
         button(R.string.start) { start() }
         button(R.string.bg_stop) { stopService(Intent(this, WalkieService::class.java)) }
+
+        // Trigger switches; a running walkie restarts to pick up the change.
+        val triggers = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        fun trigger(label: Int, pref: String, default: Boolean, onEnable: () -> Unit = {}) = triggers.addView(Switch(this).apply {
+            setText(label)
+            isChecked = prefs.getBoolean(pref, default)
+            setOnCheckedChangeListener { _, on ->
+                prefs.edit().putBoolean(pref, on).apply()
+                if (on) onEnable()
+                if (WalkieService.instance != null) start()
+            }
+        })
+        trigger(R.string.trig_floating, WalkieService.FLOATING, true)
+        trigger(R.string.trig_volume, WalkieService.VOLUME, true) {
+            val enabled = Settings.Secure.getString(contentResolver, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES).orEmpty()
+            if (packageName !in enabled) {
+                Toast.makeText(this, R.string.a11y_needed, Toast.LENGTH_LONG).show()
+                startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+            }
+        }
+        trigger(R.string.trig_ear_single, WalkieService.EAR_SINGLE, true)
+        trigger(R.string.trig_ear_double, WalkieService.EAR_DOUBLE, false)
         button(R.string.button_test) { startActivity(Intent(this, ButtonTestActivity::class.java)) }
 
         status = TextView(this).apply { textSize = 16f }
@@ -86,6 +108,7 @@ class MainActivity : Activity() {
             addView(url)
             addView(key)
             addView(row)
+            addView(triggers)
             addView(issues)
         }
         val conversation = ScrollView(this).apply { addView(talk) }
@@ -107,17 +130,6 @@ class MainActivity : Activity() {
             addView(content, LinearLayout.LayoutParams(-1, 0, 1f))
             addView(talkButton, LinearLayout.LayoutParams(-1, -2))
         })
-    }
-
-    // Diagnostics for the Samsung side key: how does a side-key launch differ from an icon tap?
-    private fun logLaunch(i: Intent) = KeyLog.add(
-        "launch",
-        "flags=0x${Integer.toHexString(i.flags)} bounds=${i.sourceBounds} from=$referrer cat=${i.categories} extras=${i.extras?.keySet()}",
-    )
-
-    override fun onNewIntent(intent: Intent) {
-        super.onNewIntent(intent)
-        logLaunch(intent)
     }
 
     override fun onResume() {

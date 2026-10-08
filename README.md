@@ -39,14 +39,18 @@ PC에 띄워 둔 Claude Code 세션과 안드로이드 폰으로 **무전기처�
 5. 처음 시작할 때 마이크, 알림, '다른 앱 위에 표시' 권한을 허용합니다.
 
 ### 사용
-- 화면에 떠 있는 🎙 버튼을 누르면 '삑' 소리가 나고, 말하면 됩니다. 말을 멈추면 자동으로 보냅니다('삑삑').
+- 말하기 버튼은 세 가지이고, 앱 화면에서 각각 켜고 끌 수 있습니다.
+  - **떠 있는 🎙 버튼**: 누르면 '삑' 소리가 나고 말하면 됩니다. 말을 멈추면 자동으로 보냅니다('삑삑').
+  - **음량 버튼 길게**: 누르고 있는 동안 말하고, 떼면 보냅니다. 짧게 누르면 평소처럼 음량이 바뀝니다. 화면이 켜져 있을 때만 되며, 접근성에서 Walkie-Claudie를 켜야 합니다(회색으로 막히면 앱 정보 › ⋮ › 제한된 설정 허용).
+  - **블루투스 이어폰 버튼**: 한 번(또는 두 번) 눌러 시작하고, 다시 누르거나 말을 멈추면 보냅니다. 화면이 꺼져 있어도 됩니다.
 - PC가 받으면 '받았어요' 효과음이 납니다. 연결이 끊겨 있으면 다시 연결될 때까지 계속 재전송합니다.
 - 답이 오면 '무전 오는 소리'가 난 뒤 음성으로 읽어 줍니다.
 - 앱 화면에는 연결 상태, 남은 이슈(Claude가 관리하는 할 일 목록), 대화 기록이 나옵니다.
 
-### Claude 사용량 표시 (선택)
-<!-- TODO(결정 대기): 상태줄 적용 방식 확정 후 -->
-`settings.json`에 `"statusLine": {"type": "command", "command": "bun <플러그인 경로>/statusline.ts"}`를 추가하면, 앱에 5시간·주간 사용량 %가 표시됩니다.
+### Claude 사용량 표시
+- 앱 상단에 5시간·주간 사용량 %가 자동으로 표시됩니다(claude.ai 구독 로그인일 때).
+- 폰이 연결돼 있는 동안 플러그인이 5분마다 Claude Code에 직접 물어봅니다. 모델을 호출하지 않아 사용량을 쓰지 않습니다.
+- 이 조회 기능은 문서화되지 않은 기능이라 Claude Code 업데이트로 안 될 수 있습니다. 그때는 사용량만 안 보입니다. 예비로 `settings.json`에 `"statusLine": {"type": "command", "command": "bun <플러그인 경로>/statusline.ts"}`를 넣으면 그 값을 씁니다.
 
 ### 보안
 - 이 앱은 **PC에서 명령을 실행할 수 있는 Claude에게 말을 거는 문**입니다.
@@ -97,14 +101,18 @@ Talk to a Claude Code session running on your PC from your Android phone, **like
 5. On first start, allow microphone, notifications and "display over other apps".
 
 ### Usage
-- Tap the floating 🎙 button, wait for the beep, and speak. It sends automatically when you stop talking (double beep).
+- Three talk triggers, each switchable in the app:
+  - **Floating 🎙 button**: tap, wait for the beep, and speak. It sends when you stop talking (double beep).
+  - **Hold a volume key**: talk while holding, release to send. Short presses still change the volume. Screen on only; turn on Walkie-Claudie under Accessibility (greyed out? App info › ⋮ › Allow restricted settings).
+  - **Bluetooth earphone button**: press once (or double-press) to start; press again or stop talking to send. Works with the screen off.
 - A confirmation sound plays once the PC has the message. If the connection is down, the app keeps retrying until it gets through.
 - When a reply arrives you hear a radio chirp, then the reply is read aloud.
 - The app shows the connection state, open items (a to-do list Claude keeps up to date) and the conversation.
 
-### Claude usage display (optional)
-<!-- TODO(pending decision) -->
-Add `"statusLine": {"type": "command", "command": "bun <plugin path>/statusline.ts"}` to `settings.json` to show your 5-hour and weekly usage % in the app.
+### Claude usage display
+- The app shows your 5-hour and weekly usage % (when signed in with a claude.ai plan).
+- While the phone is connected, the plugin asks Claude Code every 5 minutes. No model call, so it costs no usage.
+- This relies on an undocumented Claude Code feature and may stop working after an update; then only the usage display disappears. As a fallback, add `"statusLine": {"type": "command", "command": "bun <plugin path>/statusline.ts"}` to `settings.json`.
 
 ### Security
 - This app is **a door to a Claude that can run commands on your PC**.

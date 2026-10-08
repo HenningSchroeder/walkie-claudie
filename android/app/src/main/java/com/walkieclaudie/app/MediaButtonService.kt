@@ -18,8 +18,8 @@ import android.view.KeyEvent
 
 /**
  * Holds an active MediaSession so Bluetooth earphone buttons reach us with the screen off
- * or another app in front. Android routes media keys to the most recently *playing* session,
- * so we play half a second of silence on every start.
+ * or another app in front (button test only; WalkieService has its own). Re-grabs the keys
+ * with [playSilence] on every start.
  */
 class MediaButtonService : Service() {
     private lateinit var session: MediaSession
@@ -66,24 +66,6 @@ class MediaButtonService : Service() {
         return START_STICKY
     }
 
-    private fun playSilence() {
-        val rate = 8000
-        val samples = rate / 2
-        val track = AudioTrack.Builder()
-            .setAudioAttributes(AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA).setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).build())
-            .setAudioFormat(AudioFormat.Builder().setEncoding(AudioFormat.ENCODING_PCM_16BIT).setSampleRate(rate).setChannelMask(AudioFormat.CHANNEL_OUT_MONO).build())
-            .setTransferMode(AudioTrack.MODE_STATIC)
-            .setBufferSizeInBytes(samples * 2)
-            .build()
-        track.write(ShortArray(samples), 0, samples)
-        track.setNotificationMarkerPosition(samples)
-        track.setPlaybackPositionUpdateListener(object : AudioTrack.OnPlaybackPositionUpdateListener {
-            override fun onMarkerReached(t: AudioTrack) = t.release()
-            override fun onPeriodicNotification(t: AudioTrack) {}
-        })
-        track.play()
-    }
-
     override fun onDestroy() {
         unregisterReceiver(screen)
         session.release()
@@ -92,4 +74,26 @@ class MediaButtonService : Service() {
     }
 
     override fun onBind(intent: Intent?) = null
+}
+
+/**
+ * Android routes media keys to the most recently *playing* session, so a session that
+ * wants earphone buttons plays half a second of silence to become that session.
+ */
+fun playSilence() {
+    val rate = 8000
+    val samples = rate / 2
+    val track = AudioTrack.Builder()
+        .setAudioAttributes(AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA).setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).build())
+        .setAudioFormat(AudioFormat.Builder().setEncoding(AudioFormat.ENCODING_PCM_16BIT).setSampleRate(rate).setChannelMask(AudioFormat.CHANNEL_OUT_MONO).build())
+        .setTransferMode(AudioTrack.MODE_STATIC)
+        .setBufferSizeInBytes(samples * 2)
+        .build()
+    track.write(ShortArray(samples), 0, samples)
+    track.setNotificationMarkerPosition(samples)
+    track.setPlaybackPositionUpdateListener(object : AudioTrack.OnPlaybackPositionUpdateListener {
+        override fun onMarkerReached(t: AudioTrack) = t.release()
+        override fun onPeriodicNotification(t: AudioTrack) {}
+    })
+    track.play()
 }

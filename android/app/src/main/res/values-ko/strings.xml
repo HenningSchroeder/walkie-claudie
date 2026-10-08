@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="side_label">워키 버튼</string>
-    <string name="a11y_desc">Walkie-Claudie 버튼 테스트용으로 하드웨어 키(음량 길게 누르기 등)를 기록합니다. 키 동작은 그대로 전달됩니다.</string>
-    <string name="help">버튼 테스트 — 최근 누른 키가 맨 위. 다 하면 이 화면 스크린샷.\n1. [대기 시작] 누르기 (이어폰 버튼용)\n2. 이어폰 버튼 한 번 / 두 번 / 길게 — 이 화면에서, 홈 화면에서, 화면 끄고, 배송 앱 켜고\n3. 음량 길게: [접근성] › 설치된 앱 › Walkie-Claudie 켜기. 회색으로 막히면 [앱 정보] › ⋮ › 제한된 설정 허용 후 다시\n4. 측면 버튼: 설정 › 유용한 기능 › 측면 버튼 › 두 번 누르기 › 앱 열기 › \"Walkie-Claudie\"(\"워키 버튼\"이 있으면 그것). 측면 버튼 두 번 → 홈 화면 아이콘 한 번 → 여기로 돌아와 [launch] 두 줄 비교</string>
+    <string name="a11y_desc">Walkie-Claudie가 켜져 있을 때 음량 버튼을 길게 눌러 Claude에게 말합니다. 짧게 누르면 음량이 평소처럼 바뀝니다. 버튼 테스트용 키 기록도 남깁니다.</string>
+    <string name="help">버튼 테스트 — 최근 누른 키가 맨 위. 다 하면 이 화면 스크린샷.\n1. [대기 시작] 누르기 (이어폰 버튼용)\n2. 이어폰 버튼 한 번 / 두 번 / 길게 — 이 화면에서, 홈 화면에서, 화면 끄고, 배송 앱 켜고\n3. 음량 길게: [접근성] › 설치된 앱 › Walkie-Claudie 켜기. 회색으로 막히면 [앱 정보] › ⋮ › 제한된 설정 허용 후 다시</string>
     <string name="bg_start">대기 시작</string>
     <string name="bg_stop">중지</string>
     <string name="a11y_open">접근성</string>
@@ -28,4 +27,9 @@
     <string name="no_issues">남은 이슈 없음</string>
     <string name="scan">QR 스캔</string>
     <string name="bad_qr">Walkie-Claudie QR이 아닙니다. PC에서 /walkie:pair 를 실행하세요.</string>
+    <string name="trig_floating">떠 있는 🎙 버튼</string>
+    <string name="trig_volume">음량 버튼 길게 눌러 말하기 (화면 켜짐)</string>
+    <string name="trig_ear_single">이어폰 한 번 누르기</string>
+    <string name="trig_ear_double">이어폰 두 번 누르기</string>
+    <string name="a11y_needed">설치된 앱에서 Walkie-Claudie를 켜 주세요. 회색으로 막히면 앱 정보 › ⋮ › 제한된 설정 허용을 먼저.</string>
 </resources>

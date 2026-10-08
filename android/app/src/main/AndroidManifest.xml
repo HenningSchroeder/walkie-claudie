@@ -39,26 +39,10 @@
             android:exported="false"
             android:theme="@android:style/Theme.DeviceDefault.NoActionBar" />
 
-        <!-- Second launcher entry: pick this in Samsung "Side button > Double press > Open app".
-             Translucent, logs the launch, beeps, and finishes without switching screens. -->
-        <activity
-            android:name=".SideButtonActivity"
-            android:exported="true"
-            android:label="@string/side_label"
-            android:taskAffinity=""
-            android:excludeFromRecents="true"
-            android:noHistory="true"
-            android:theme="@android:style/Theme.Translucent.NoTitleBar">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
-
         <service
             android:name=".WalkieService"
             android:exported="false"
-            android:foregroundServiceType="microphone" />
+            android:foregroundServiceType="microphone|mediaPlayback" />
 
         <service
             android:name=".MediaButtonService"

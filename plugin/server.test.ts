@@ -4,8 +4,21 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
 import { mkdtempSync, readFileSync } from 'fs'
 import { tmpdir } from 'os'
-import { join } from 'path'
-import { isPrivate } from './server.ts'
+import { dirname, join } from 'path'
+import { isPrivate, parseUsage } from './server.ts'
+
+test('parseUsage', () => {
+  const line = JSON.stringify({ type: 'control_response', response: { subtype: 'success', request_id: 'usage', response: {
+    rate_limits: { five_hour: { utilization: 65, resets_at: '2026-10-08T04:40:00Z' }, seven_day: { utilization: 55 }, seven_day_opus: null },
+  } } })
+  expect(parseUsage(line)).toEqual({
+    five_hour: { used_percentage: 65, resets_at: '2026-10-08T04:40:00Z' },
+    seven_day: { used_percentage: 55, resets_at: undefined },
+  })
+  expect(parseUsage(JSON.stringify({ type: 'control_response', response: { response: { rate_limits: null } } }))).toBeNull()
+  expect(parseUsage('{"type":"system"}')).toBeUndefined()
+  expect(parseUsage('not json')).toBeUndefined()
+})
 
 test('isPrivate', () => {
   for (const ip of ['192.168.0.5', '10.1.2.3', '172.20.0.1', '100.101.102.103', '127.0.0.1', '::1', '::ffff:192.168.1.2', 'fd7a:115c:a1e0::1'])
@@ -19,7 +32,7 @@ async function start(enable: boolean, dir = mkdtempSync(join(tmpdir(), 'walkie-'
   const client = new Client({ name: 'test', version: '0' })
   const inbound: any[] = []
   client.fallbackNotificationHandler = async n => { inbound.push(n) }
-  const env = { ...process.env, WALKIE_STATE_DIR: dir, WALKIE_PORT: String(port), WALKIE_ENABLE: enable ? '1' : '' }
+  const env = { ...process.env, PATH: dirname(process.execPath), WALKIE_STATE_DIR: dir, WALKIE_PORT: String(port), WALKIE_ENABLE: enable ? '1' : '' }
   await client.connect(new StdioClientTransport({
     command: 'bun', args: [join(import.meta.dir, 'server.ts')], env: env as Record<string, string>,
   }))

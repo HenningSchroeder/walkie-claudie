@@ -23,7 +23,7 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { ListToolsRequestSchema, CallToolRequestSchema } from '@modelcontextprotocol/sdk/types.js'
 import { randomBytes, timingSafeEqual } from 'crypto'
 import { readFileSync, writeFileSync, mkdirSync } from 'fs'
-import { homedir } from 'os'
+import { homedir, tmpdir } from 'os'
 import { join } from 'path'
 
 export const STATE_DIR = process.env.WALKIE_STATE_DIR
@@ -72,8 +72,73 @@ function authorized(req: Request): boolean {
   return got.length === keyBuf.length && timingSafeEqual(got, keyBuf)
 }
 
-/** Plan usage limits, as last written by statusline.ts (null when it isn't installed). */
-function usage(): unknown {
+type Limit = { used_percentage: number; resets_at?: unknown }
+type Usage = { five_hour?: Limit; seven_day?: Limit }
+const USAGE_EVERY_MS = 5 * 60_000
+let polledUsage: Usage | null = null
+let usageAt = 0
+
+/** Reads 5h/7d utilization from a get_usage control_response line; undefined if the line is something else. */
+export function parseUsage(line: string): Usage | null | undefined {
+  let m: any
+  try { m = JSON.parse(line) } catch { return undefined }
+  if (m?.type !== 'control_response') return undefined
+  const rl = m.response?.response?.rate_limits
+  if (!rl) return null
+  const pick = (l: any): Limit | undefined =>
+    l?.utilization == null ? undefined : { used_percentage: l.utilization, resets_at: l.resets_at }
+  return { five_hour: pick(rl.five_hour), seven_day: pick(rl.seven_day) }
+}
+
+/**
+ * Asks Claude Code itself for the plan usage, through the get_usage control request of a
+ * throwaway headless process (no model call, no cost). get_usage is undocumented, so any
+ * failure just hides usage on the phone. The process is isolated: --strict-mcp-config so it
+ * can't start other plugins' MCP servers (a second Telegram poller would steal messages),
+ * --restricted so user hooks don't run, --no-session-persistence so `claude --continue`
+ * never picks it up, and a bare env.
+ */
+async function refreshUsage(): Promise<void> {
+  usageAt = Date.now()
+  let result: Usage | null = null
+  try {
+    const proc = Bun.spawn(
+      ['claude', '-p', '--input-format', 'stream-json', '--output-format', 'stream-json', '--verbose',
+        '--restricted', '--strict-mcp-config', '--no-session-persistence'],
+      {
+        cwd: tmpdir(),
+        env: {
+          HOME: homedir(), PATH: process.env.PATH ?? '', LANG: 'C.UTF-8',
+          ...(process.env.CLAUDE_CONFIG_DIR ? { CLAUDE_CONFIG_DIR: process.env.CLAUDE_CONFIG_DIR } : {}),
+        },
+        stdin: 'pipe', stdout: 'pipe', stderr: 'ignore',
+      },
+    )
+    const timer = setTimeout(() => proc.kill(), 30_000)
+    proc.stdin.write('{"type":"control_request","request_id":"usage","request":{"subtype":"get_usage","skip_behaviors":true}}\n')
+    proc.stdin.flush()
+    const dec = new TextDecoder()
+    let buf = ''
+    read: for await (const chunk of proc.stdout) {
+      buf += dec.decode(chunk, { stream: true })
+      for (let i; (i = buf.indexOf('\n')) >= 0;) {
+        const u = parseUsage(buf.slice(0, i))
+        buf = buf.slice(i + 1)
+        if (u !== undefined) { result = u; break read }
+      }
+    }
+    clearTimeout(timer)
+    proc.kill()
+  } catch (err) {
+    process.stderr.write(`walkie channel: usage check failed: ${err}\n`)
+  }
+  polledUsage = result
+  wake()
+}
+
+/** Plan usage for the phone: polled from Claude Code, else whatever statusline.ts last saved, else null. */
+function usage(): Usage | null {
+  if (polledUsage) return polledUsage
   try {
     const { five_hour, seven_day } = JSON.parse(readFileSync(join(STATE_DIR, 'status.json'), 'utf8')).rate_limits ?? {}
     return { five_hour, seven_day }
@@ -181,6 +246,8 @@ async function handle(req: Request, ip: string): Promise<Response> {
 
   if (req.method === 'GET' && url.pathname === '/poll') {
     const after = Number(url.searchParams.get('after') ?? 0)
+    // Usage is only fetched while a phone is polling, at most every few minutes.
+    if (Date.now() - usageAt > USAGE_EVERY_MS) void refreshUsage()
     if (!outbox.some(r => r.seq > after)) {
       await new Promise<void>(resolve => {
         const done = () => { clearTimeout(timer); waiters.delete(done); resolve() }
