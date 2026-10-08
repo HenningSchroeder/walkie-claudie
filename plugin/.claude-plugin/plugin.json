@@ -1,0 +1,7 @@
+{
+  "name": "walkie",
+  "description": "Voice walkie-talkie channel for Claude Code — push-to-talk from the Walkie-Claudie Android app over your own network.",
+  "version": "0.1.0",
+  "license": "MIT",
+  "keywords": ["channel", "voice", "android", "mcp"]
+}

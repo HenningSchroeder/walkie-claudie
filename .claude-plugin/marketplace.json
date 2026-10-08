@@ -1,0 +1,11 @@
+{
+  "name": "walkie-claudie",
+  "owner": { "name": "Walkie-Claudie contributors" },
+  "plugins": [
+    {
+      "name": "walkie",
+      "description": "Voice walkie-talkie channel: talk to this Claude Code session from your Android phone.",
+      "source": "./plugin"
+    }
+  ]
+}
