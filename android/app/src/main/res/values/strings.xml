@@ -73,4 +73,5 @@
     <string name="trig_floating_sub">Long-press to take the earphone button back</string>
     <string name="new_lines">▼ New</string>
     <string name="to_bottom">▼ Latest</string>
+    <string name="err_speech_note">speech error %1$s (%2$d sessions)</string>
 </resources>

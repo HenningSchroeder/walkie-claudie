@@ -7,11 +7,12 @@ import java.io.File
 /** Conversation state shared by WalkieService and MainActivity, saved to disk on every change. Main thread only. */
 object Talk {
     enum class State(val label: Int) {
-        SENDING(R.string.st_sending), RECEIVED(R.string.st_received), ANSWERED(R.string.st_answered), REPLY(0)
+        SENDING(R.string.st_sending), RECEIVED(R.string.st_received), ANSWERED(R.string.st_answered), REPLY(0),
+        NOTE(0) // the app's own diagnostic line
     }
 
     class Line(val id: String, val text: String, var state: State) {
-        val mine get() = state != State.REPLY
+        val mine get() = state != State.REPLY && state != State.NOTE
     }
 
     val lines = ArrayList<Line>()

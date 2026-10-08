@@ -216,6 +216,8 @@ class MainActivity : Activity() {
             if (l.mine) sb.para(talk, getString(R.string.me),
                 l.text + if (l.state != Talk.State.ANSWERED) " (${getString(l.state.label)})" else "",
                 GapAbove(gap), ForegroundColorSpan(Ui.INK.alpha(0.6f)))
+            else if (l.state == Talk.State.NOTE) sb.para(talk, "", "-- ${l.text} --", GapAbove(gap),
+                AbsoluteSizeSpan(Ui.S.toInt(), true), ForegroundColorSpan(Ui.INK.alpha(0.55f)))
             else sb.para(talk, getString(R.string.claude), l.text)
         }
         val sys = listOfNotNull(

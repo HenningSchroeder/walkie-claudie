@@ -214,47 +214,48 @@ class WalkieService : Service() {
     // --- speech in ---
 
     // A recording spans several recognizer sessions: the recognizer ends a session on its own when the
-    // speaker pauses, so until the user ends it (release / press again) we keep what it heard and start
-    // the next session at once. [heard] is the text so far; [finishing] = the user ended it.
+    // speaker pauses, so until the user ends it (release / press again) we keep what it heard and open a
+    // fresh recognizer shortly after. [heard] is the text so far; [finishing] = the user ended it;
+    // [errors] = recognizer error codes this recording, written to the conversation when it fails.
     private var heard = ""
     private var finishing = false
+    private val errors = ArrayList<Int>()
+    private var sessions = 0
     private val maxRecording = Runnable { finishListening() } // a toggle someone forgot to press again
 
     private fun toggleListening() {
-        if (recognizer != null) return finishListening()
+        if (recognizer != null || Talk.listening) return finishListening()
         if (inCall()) return // the call owns the mic and the buttons
         tts.stop() // talking over a reply interrupts it
         heard = ""
         finishing = false
+        errors.clear()
+        sessions = 0
         main.postDelayed(maxRecording, 120_000)
+        setListening(true)
+        session()
+    }
+
+    /** One recognizer session; a new recognizer each time (reusing one right after it ended failed on a real phone). */
+    private fun session() {
         val r = SpeechRecognizer.createSpeechRecognizer(this)
         recognizer = r
-        setListening(true)
-        var beeped = false
+        val first = sessions++ == 0
         r.setRecognitionListener(object : RecognitionListener {
             override fun onReadyForSpeech(params: Bundle?) {
-                if (!beeped) tone.startTone(ToneGenerator.TONE_PROP_BEEP, 120) // first session only
-                beeped = true
+                if (first) tone.startTone(ToneGenerator.TONE_PROP_BEEP, 120) // the next sessions stay silent
             }
             override fun onResults(results: Bundle) {
                 if (recognizer !== r) return
                 val text = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull()
                 if (!text.isNullOrBlank()) heard = "$heard $text".trim()
-                if (finishing) doneListening() else restart(r)
+                if (finishing) doneListening() else next(r)
             }
             override fun onError(error: Int) {
                 if (recognizer !== r) return
-                val pause = error == SpeechRecognizer.ERROR_SPEECH_TIMEOUT || error == SpeechRecognizer.ERROR_NO_MATCH ||
-                    error == SpeechRecognizer.ERROR_RECOGNIZER_BUSY
-                when {
-                    pause && !finishing -> restart(r, if (error == SpeechRecognizer.ERROR_RECOGNIZER_BUSY) 300L else 0L)
-                    pause || heard.isNotEmpty() -> doneListening() // keep what was heard rather than lose it
-                    else -> {
-                        endListening()
-                        tone.startTone(ToneGenerator.TONE_PROP_NACK, 300)
-                        setStatus(Talk.status, getString(R.string.err_speech, error))
-                    }
-                }
+                errors.add(error)
+                val pause = error == SpeechRecognizer.ERROR_SPEECH_TIMEOUT || error == SpeechRecognizer.ERROR_NO_MATCH
+                if (pause && !finishing) next(r) else doneListening() // anything heard so far still goes out
             }
             override fun onBeginningOfSpeech() {}
             override fun onRmsChanged(rmsdB: Float) {}
@@ -267,31 +268,39 @@ class WalkieService : Service() {
             }
             override fun onEvent(eventType: Int, params: Bundle?) {}
         })
-        listen(r)
+        r.startListening(Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
+            .putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+            .putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true))
     }
 
-    /** Next session on the next tick (not from inside the callback); a busy recognizer gets a moment. */
-    private fun restart(r: SpeechRecognizer, delayMs: Long = 0) = main.postDelayed({ if (recognizer === r) listen(r) }, delayMs)
+    /** The recognizer closed a session on a pause: drop it and open a fresh one shortly. */
+    private fun next(r: SpeechRecognizer) {
+        r.destroy()
+        recognizer = null
+        main.postDelayed({ if (Talk.listening && recognizer == null && !finishing) session() }, 300)
+    }
 
-    private fun listen(r: SpeechRecognizer) = r.startListening(Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
-        .putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-        .putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
-        // Longer pause before a session ends. Google's recognizer reads these as Int (documented as long;
-        // a Long is dropped with a Bundle warning) and may still ignore them; the restart is what's guaranteed.
-        .putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 5_000)
-        .putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 5_000))
-
-    /** The user ended the recording: the last session's result arrives in onResults/onError, then it sends. */
+    /** The user ended the recording: the open session's result arrives in onResults/onError, then it sends. */
     private fun finishListening() {
-        val r = recognizer ?: return
+        if (!Talk.listening) return
         finishing = true
+        val r = recognizer ?: return doneListening() // between sessions: nothing pending
         r.stopListening()
     }
 
     private fun doneListening() {
         val text = heard
+        val failed = errors.filter { it != SpeechRecognizer.ERROR_SPEECH_TIMEOUT && it != SpeechRecognizer.ERROR_NO_MATCH }
         endListening()
+        if (failed.isNotEmpty() || text.isEmpty() && errors.isNotEmpty())
+            note(getString(R.string.err_speech_note, errors.joinToString(","), sessions))
         if (text.isEmpty()) tone.startTone(ToneGenerator.TONE_PROP_NACK, 300) else send(text)
+    }
+
+    /** A line in the conversation for diagnosis (kept in the log, not sent). */
+    private fun note(text: String) {
+        Talk.lines.add(Talk.Line(UUID.randomUUID().toString(), text, Talk.State.NOTE))
+        Talk.changed()
     }
 
     /** Picks up a voice changed in VoiceActivity. */
@@ -302,7 +311,7 @@ class WalkieService : Service() {
 
     /** Volume key held past the long-press threshold: start talking; [holdEnd] on release sends. */
     fun holdStart() {
-        if (recognizer == null) toggleListening()
+        if (!Talk.listening) toggleListening()
         Talk.hold = true
         Talk.refresh()
     }

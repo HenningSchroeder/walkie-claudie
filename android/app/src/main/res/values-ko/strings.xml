@@ -72,4 +72,5 @@
     <string name="trig_floating_sub">길게 누르면 이어폰 버튼 되찾기</string>
     <string name="new_lines">▼ 새 글</string>
     <string name="to_bottom">▼ 맨 아래</string>
+    <string name="err_speech_note">음성 인식 오류 %1$s (세션 %2$d번)</string>
 </resources>
