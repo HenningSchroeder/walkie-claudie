@@ -2,8 +2,6 @@ package com.walkieclaudie.app
 
 import android.app.Activity
 import android.content.Context
-import android.content.Intent
-import android.content.pm.PackageManager
 import android.graphics.Typeface
 import android.media.AudioAttributes
 import android.os.Bundle
@@ -20,9 +18,10 @@ import android.widget.TextView
 import java.util.Locale
 
 /**
- * Opens the chosen TTS engine (default: the phone's default engine, by name) in the phone's language,
- * with the chosen voice (default: that language's best) and speed. Left to Android's defaults, a
- * Samsung-engine test phone spoke with Google's voice (10/8). [onReady] gets a one-line diagnosis.
+ * Opens the chosen TTS engine (default: the phone's default engine) in the phone's language, with the
+ * chosen voice (default: that language's best) and speed. [onReady] gets a one-line diagnosis.
+ * Note: since One UI 7 Samsung's engine (com.samsung.SMT) refuses third-party apps, so Android falls
+ * back to Google there (confirmed on a test phone, 10/8) — nothing an app can do about it.
  */
 fun openTts(ctx: Context, onReady: (String) -> Unit): TextToSpeech {
     val prefs = ctx.getSharedPreferences(WalkieService.PREFS, Context.MODE_PRIVATE)
@@ -52,25 +51,6 @@ fun TextToSpeech.phoneLanguageVoices(): List<Voice> = voices.orEmpty()
     .filter { it.locale.language == Locale.getDefault().language && TextToSpeech.Engine.KEY_FEATURE_NOT_INSTALLED !in it.features }
     .sortedWith(compareByDescending<Voice> { it.quality }.thenBy { it.isNetworkConnectionRequired })
 
-/**
- * Why an engine may be missing from TextToSpeech.getEngines(): what the package manager shows us
- * for the TTS service intent, and how Samsung's engine looks from here (10/8: test phone hid it).
- */
-fun ttsProbe(ctx: Context): String {
-    val pm = ctx.packageManager
-    val query = pm.queryIntentServices(Intent(TextToSpeech.Engine.INTENT_ACTION_TTS_SERVICE), PackageManager.MATCH_ALL)
-        .map { it.serviceInfo.packageName }
-    val smt = runCatching { pm.getPackageInfo(SAMSUNG_TTS, PackageManager.GET_SERVICES) }.getOrNull()
-    val smtInfo = smt?.let { p ->
-        "$SAMSUNG_TTS ${p.versionName}: " + p.services.orEmpty().joinToString { s ->
-            s.name.substringAfterLast('.') + (if (s.exported) "" else " (not exported)") + (s.permission?.let { " [$it]" } ?: "")
-        }
-    } ?: "$SAMSUNG_TTS not visible"
-    return "query=$query · $smtInfo"
-}
-
-const val SAMSUNG_TTS = "com.samsung.SMT"
-
 /** Pick the engine, voice and speed; every change plays a sample sentence. */
 class VoiceActivity : Activity() {
     private val prefs by lazy { getSharedPreferences(WalkieService.PREFS, MODE_PRIVATE) }
@@ -78,8 +58,6 @@ class VoiceActivity : Activity() {
     private lateinit var engines: RadioGroup
     private lateinit var voices: RadioGroup
     private lateinit var info: TextView
-    private var probe: TextToSpeech? = null
-    private var probeText = ""
     private var voiceNames = listOf<String>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -123,20 +101,13 @@ class VoiceActivity : Activity() {
             addView(info)
         }) })
         reopen(fillEngines = true)
-        // Diagnosis: try Samsung's engine directly and report whether it connects.
-        probe = TextToSpeech(this, { status ->
-            val using = runCatching { TextToSpeech::class.java.getMethod("getCurrentEngine").invoke(probe) }.getOrNull()
-            probeText = "\n\nforce $SAMSUNG_TTS → status $status, using=$using\n${ttsProbe(this)}\nbuild ${BuildConfig.BUILD}"
-            info.append(probeText)
-            probe?.shutdown()
-        }, SAMSUNG_TTS)
     }
 
     /** (Re)connects with the saved choice; refreshes the lists once the engine is up. */
     private fun reopen(fillEngines: Boolean = false, speak: Boolean = false) {
         tts?.shutdown()
         tts = openTts(this) { diagnosis ->
-            info.text = diagnosis + probeText
+            info.text = "$diagnosis · build ${BuildConfig.BUILD}"
             if (fillEngines) fillEngines()
             fillVoices()
             if (speak) sample()
@@ -194,7 +165,6 @@ class VoiceActivity : Activity() {
 
     override fun onDestroy() {
         tts?.shutdown()
-        probe?.shutdown()
         super.onDestroy()
     }
 }

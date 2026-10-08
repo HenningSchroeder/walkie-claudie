@@ -13,9 +13,6 @@
     <queries>
         <intent><action android:name="android.speech.RecognitionService" /></intent>
         <intent><action android:name="android.intent.action.TTS_SERVICE" /></intent>
-        <!-- The intent query above didn't expose Samsung's engine on a test phone (10/8): the app fell back
-             to Google even though Samsung TTS is the phone's default. Name it explicitly. -->
-        <package android:name="com.samsung.SMT" />
     </queries>
 
     <application
