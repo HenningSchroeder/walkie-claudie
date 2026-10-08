@@ -17,7 +17,6 @@ import android.view.View
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
-import android.widget.Toast
 import kotlin.concurrent.thread
 
 private const val TODO_OPEN = "todo_open"
@@ -43,6 +42,11 @@ class MainActivity : Activity() {
     private lateinit var recHint: TextView
     private lateinit var heard: TextView
     private lateinit var power: TextView
+    private lateinit var chList: View
+    private lateinit var chMenu: LinearLayout
+    private lateinit var back: TextView
+    private val mainKeys = ArrayList<View>()
+    private var picking = false // the channel list is up
     private val cursor by lazy { CursorSpan(this) }
     private var shownText = ""
     private var pinned = true
@@ -77,10 +81,10 @@ class MainActivity : Activity() {
                 }, LinearLayout.LayoutParams(0, -2, 1f).apply { if (i > 0) marginStart = dpi(14) })
             }
         }
-        // Tap: next channel (another walkie session on the PC).
+        // Tap: the channel list (other walkie sessions on the PC).
         body.lcd(LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setOnClickListener { nextChannel() }
+            setOnClickListener { openChannels() }
             addView(head)
             addView(meters, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dpi(4) })
         })
@@ -143,6 +147,10 @@ class MainActivity : Activity() {
             addView(heard, LinearLayout.LayoutParams(-2, -2).apply { topMargin = dpi(18) })
         }, inverted = true, weight = 1f)
 
+        // Channel list: takes the place of the open-items and conversation LCDs, like transmitting does.
+        chMenu = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        chList = body.lcd(ScrollView(this).apply { isVerticalScrollBarEnabled = false; addView(chMenu) }, weight = 1f)
+
         body.key(key(R.string.settings) { startActivity(Intent(this, SettingsActivity::class.java)) })
         power = key(R.string.power_off) {
             when {
@@ -155,6 +163,10 @@ class MainActivity : Activity() {
         body.key(key(R.string.talk) {
             startForegroundService(Intent(this, WalkieService::class.java).setAction(WalkieService.TALK))
         }.apply { setTextColor(Color.WHITE) })
+        for (i in 0 until body.keys.childCount) mainKeys.add(body.keys.getChildAt(i))
+        back = key(R.string.back) { closeChannels() }
+        body.key(back)
+        (back.layoutParams as LinearLayout.LayoutParams).marginStart = 0 // shown alone, in place of the three
     }
 
     override fun onResume() {
@@ -168,22 +180,52 @@ class MainActivity : Activity() {
         Talk.onChange = null
     }
 
-    private fun nextChannel() {
+    private fun openChannels() {
         if (Talk.listening) return
-        Toast.makeText(this, R.string.channel_scanning, Toast.LENGTH_SHORT).show()
+        picking = true
+        fillChannels(checking = true) // last known list at once; the scan takes a second or two
+        render()
         thread {
-            val live = Channels.scan(this)
-            runOnUiThread {
-                val now = Channels.port(this)
-                val next = live.firstOrNull { it > now } ?: live.firstOrNull()
-                when {
-                    next == null -> Toast.makeText(this, R.string.channel_none, Toast.LENGTH_LONG).show()
-                    next == now -> Toast.makeText(this, R.string.channel_only, Toast.LENGTH_SHORT).show()
-                    else -> Channels.switchTo(this, next)
-                }
-                render()
-            }
+            Channels.scan(this)
+            runOnUiThread { if (picking) fillChannels(checking = false) }
         }
+    }
+
+    private fun closeChannels() {
+        picking = false
+        render()
+    }
+
+    /** One row per channel seen so far: the current one marked, closed ones dimmed and not pickable. */
+    private fun fillChannels(checking: Boolean) {
+        chMenu.removeAllViews()
+        chMenu.menuTitle(getString(R.string.channels))
+        val now = Channels.port(this)
+        val live = Channels.live.orEmpty()
+        val ports = Channels.known(this)
+        for (p in ports) {
+            val open = p in live
+            val sub = when {
+                p == now -> getString(R.string.channel_now)
+                checking -> getString(R.string.channel_checking)
+                !open -> getString(R.string.channel_off)
+                else -> null
+            }
+            val pick = if (checking && p != now || !checking && !open && p != now) null else ({
+                if (p != now) Channels.switchTo(this, p)
+                closeChannels()
+            })
+            chMenu.menuRow((if (p == now) "■ " else "□ ") + Channels.label(this, p), sub, null, pick)
+            if (!checking && !open && p != now) chMenu.getChildAt(chMenu.childCount - 1).alpha = 0.4f
+        }
+        if (!checking && live.isEmpty())
+            chMenu.addView(lcdText(Ui.S).apply { setText(R.string.channel_none); alpha = 0.7f; wrapByWord() },
+                LinearLayout.LayoutParams(-1, -2).apply { topMargin = dpi(10) })
+    }
+
+    @Deprecated("Deprecated in Java")
+    override fun onBackPressed() {
+        if (picking) closeChannels() else @Suppress("DEPRECATION") super.onBackPressed()
     }
 
     private fun blink(on: Boolean) {
@@ -196,7 +238,7 @@ class MainActivity : Activity() {
         val running = WalkieService.instance != null
         val offline = Talk.status == R.string.st_offline
         state.setText(Talk.status)
-        channel.text = Channels.label(this) + if (Channels.live > 1) " ›" else ""
+        channel.text = Channels.label(this) + " ›"
         antenna.bars = if (Talk.status == R.string.st_connected) 4 else if (Talk.status == R.string.st_connecting) 1 else 0
         when {
             Talk.listening -> body.led(Ui.LED_REC)
@@ -217,8 +259,12 @@ class MainActivity : Activity() {
         meter(u5, c5, R.string.usage_5h, Talk.usage5h)
         meter(u7, c7, R.string.usage_7d, Talk.usage7d)
 
-        todo.visibility = if (Talk.listening) View.GONE else View.VISIBLE
+        if (Talk.listening) picking = false
+        todo.visibility = if (Talk.listening || picking) View.GONE else View.VISIBLE
         logBox.visibility = todo.visibility
+        chList.visibility = if (picking) View.VISIBLE else View.GONE
+        mainKeys.forEach { it.visibility = if (picking) View.GONE else View.VISIBLE }
+        back.visibility = if (picking) View.VISIBLE else View.GONE
         rec.visibility = if (Talk.listening) View.VISIBLE else View.GONE
         recHint.text = getString(if (Talk.hold) R.string.release_to_send else R.string.press_to_send) +
             if (Talk.session > 1) " · " + getString(R.string.continued, Talk.session - 1) else ""

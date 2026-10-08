@@ -87,7 +87,9 @@
     <string name="voice_picked">Chosen voice</string>
     <string name="channel_unnamed">CLAUDE</string>
     <string name="channel_say">Channel %1$d, %2$s</string>
-    <string name="channel_scanning">Looking for channels…</string>
     <string name="channel_none">No channel is open. Start a walkie session on the PC</string>
-    <string name="channel_only">This is the only open channel</string>
+    <string name="channels">Channels</string>
+    <string name="channel_now">current</string>
+    <string name="channel_off">off</string>
+    <string name="channel_checking">checking…</string>
 </resources>

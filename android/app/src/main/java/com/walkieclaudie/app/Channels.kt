@@ -40,11 +40,19 @@ object Channels {
 
     /** Last name the channel gave; empty for a plugin from before channels. */
     fun name(ctx: Context, port: Int = port(ctx)) = prefs(ctx).getString("name-$port", "")!!
-    fun label(ctx: Context) = ctx.getString(R.string.channel, number(ctx), name(ctx).ifEmpty { ctx.getString(R.string.channel_unnamed) })
+    fun label(ctx: Context, port: Int = port(ctx)) =
+        ctx.getString(R.string.channel, port - base(prefs(ctx)).second + 1, name(ctx, port).ifEmpty { ctx.getString(R.string.channel_unnamed) })
     fun spoken(ctx: Context) = ctx.getString(R.string.channel_say, number(ctx), name(ctx))
 
-    /** How many channels answered the last [scan]. */
-    var live = 0
+    /** Ports that answered the last [scan]; null before the first one. */
+    var live: List<Int>? = null
+
+    /** Channels seen at least once (they answered a scan), plus the active one. */
+    fun known(ctx: Context): List<Int> {
+        val p = prefs(ctx)
+        val first = base(p).second
+        return (first until first + COUNT).filter { p.contains("name-$it") || it == port(ctx) }
+    }
 
     /** Asks every channel port at once; returns the ports that answer, saving their names. Blocking: not on the main thread. */
     fun scan(ctx: Context): List<Int> {
@@ -74,7 +82,7 @@ object Channels {
         val e = p.edit()
         names.forEachIndexed { i, n -> if (n != null) e.putString("name-${first + i}", n) }
         e.apply()
-        return names.indices.filter { names[it] != null }.map { first + it }.also { live = it.size }
+        return names.indices.filter { names[it] != null }.map { first + it }.also { live = it }
     }
 
     /** Makes [port] the active channel: its conversation on screen; a running walkie restarts on it and says its name. */

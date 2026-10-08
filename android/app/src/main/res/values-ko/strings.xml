@@ -86,7 +86,9 @@
     <string name="voice_picked">고른 목소리</string>
     <string name="channel_unnamed">비서</string>
     <string name="channel_say">채널 %1$d, %2$s</string>
-    <string name="channel_scanning">채널 찾는 중…</string>
     <string name="channel_none">열린 채널이 없습니다. PC에서 무전기 세션을 켜세요</string>
-    <string name="channel_only">열린 채널이 이것 하나입니다</string>
+    <string name="channels">채널</string>
+    <string name="channel_now">지금 채널</string>
+    <string name="channel_off">꺼짐</string>
+    <string name="channel_checking">확인 중…</string>
 </resources>

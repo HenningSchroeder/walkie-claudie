@@ -36,7 +36,7 @@ PC에 띄워 둔 Claude Code 세션과 안드로이드 폰으로 **무전기처�
    ```
    - Claude Code 채널은 아직 연구 미리보기라, Anthropic 허용 목록에 없는 채널은 이 개발용 플래그로만 연결됩니다. 시작할 때마다 경고 창이 뜨며, Enter를 누르면 넘어갑니다. 공식 플러그인 디렉터리 등재를 추진할 예정이고, 등재되면 `--channels plugin:walkie@...`로 바뀝니다.
    - 플러그인은 PC의 **모든** Claude Code 세션에서 켜집니다. 하지만 `WALKIE_ENABLE=1`이 없는 세션에서는 포트도 도구도 열지 않고 조용히 있습니다.
-   - **여러 세션 = 채널.** `WALKIE_ENABLE=1`로 띄운 세션마다 7700, 7701, … 중 빈 포트를 하나씩 잡아 CH1, CH2, …가 됩니다. 앱 맨 위 액정(`CH1 이름 ›`)을 누르면 다음 채널로 바뀌고 채널 이름을 소리로 알려 줍니다. 채널 이름은 세션 폴더 이름이고, `WALKIE_NAME=비서`처럼 정할 수 있습니다. 이미 켜 둔 세션에는 붙일 수 없습니다(채널은 세션을 띄울 때만 연결됨).
+   - **여러 세션 = 채널.** `WALKIE_ENABLE=1`로 띄운 세션마다 7700, 7701, … 중 빈 포트를 하나씩 잡아 CH1, CH2, …가 됩니다. 앱 맨 위 액정(`CH1 이름 ›`)을 누르면 채널 목록이 뜨고, 고르면 그 채널로 바뀌며 채널 이름을 소리로 알려 줍니다. 채널 이름은 세션 폴더 이름이고, `WALKIE_NAME=비서`처럼 정할 수 있습니다. 이미 켜 둔 세션에는 붙일 수 없습니다(채널은 세션을 띄울 때만 연결됨).
 3. 앱 APK를 폰에 설치합니다([Releases](../../releases), 또는 아래 '직접 빌드').
 4. PC 세션에서 `/walkie:pair`를 입력하면 QR이 나옵니다. 앱의 **[설정] › 키 › QR**로 찍습니다.
    - QR이 깨져 보이면 터미널에서 직접 `bun <플러그인 경로>/pair.ts`를 실행하세요.
@@ -118,7 +118,7 @@ Built by a parcel courier whose hands are always busy: even with the delivery ap
    ```
    - Claude Code channels are a research preview: channels not on Anthropic's allowlist attach only through this development flag. A warning appears on every start; press Enter to continue. We plan to submit to the official plugin directory; once listed, this becomes `--channels plugin:walkie@...`.
    - The plugin starts in **every** Claude Code session on the PC, but stays inert (no port, no tools) unless `WALKIE_ENABLE=1` is set.
-   - **Several sessions = channels.** Each session started with `WALKIE_ENABLE=1` takes the first free port of 7700, 7701, … and becomes CH1, CH2, … Tap the top LCD in the app (`CH1 name ›`) to switch to the next channel; its name is read out. The name is the session's folder, or set it with `WALKIE_NAME=assistant`. A session that is already running can't be attached (channels connect only at session start).
+   - **Several sessions = channels.** Each session started with `WALKIE_ENABLE=1` takes the first free port of 7700, 7701, … and becomes CH1, CH2, … Tap the top LCD in the app (`CH1 name ›`) for the channel list; pick one to switch, and its name is read out. The name is the session's folder, or set it with `WALKIE_NAME=assistant`. A session that is already running can't be attached (channels connect only at session start).
 3. Install the app APK ([Releases](../../releases), or see "Build" below).
 4. Run `/walkie:pair` in the session to show a QR code, then scan it in the app under **Settings › Key › QR**.
    - If the QR looks broken, run `bun <plugin path>/pair.ts` yourself in a terminal.
