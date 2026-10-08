@@ -158,7 +158,7 @@ const mcp = new Server(
       '',
       'Messages arrive as <channel source="walkie" msg_id="..." ts="...">. The text comes from on-device speech recognition and may contain misheard words.',
       '',
-      'Begin your first reply to each message by briefly restating what you understood, so they can catch a misrecognition. Pass reply_to=msg_id.',
+      'Answer directly; do not restate the request. Only when the recognized text is unclear or looks misheard, briefly say what you understood and ask before acting. Pass reply_to=msg_id.',
       'Write for the ear: short spoken sentences in the sender\'s language, no markdown, tables, code, file paths or URLs unless asked. For long tasks, send a short acknowledgement first, then a new reply when done.',
       '',
       'Keep the open-items list current with set_issues whenever something becomes pending or gets resolved: questions waiting on their answer, approvals, tasks in progress. One short line per item. Always pass the full list; an empty list clears it.',
