@@ -18,6 +18,7 @@ import android.widget.Toast
 /** Button test screen: shows every key event the app can see, from any source. */
 class ButtonTestActivity : Activity() {
     private lateinit var log: TextView
+    private lateinit var tts: android.speech.tts.TextToSpeech
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -41,16 +42,25 @@ class ButtonTestActivity : Activity() {
         button(1, R.string.clear) { KeyLog.clear() }
 
         log = TextView(this).apply { textSize = 17f; setTextIsSelectable(true) }
+        // Same voice choice as the walkie, shown so a screenshot tells which engine/voice speaks.
+        val ttsLine = TextView(this).apply { textSize = 13f; setTextIsSelectable(true); text = "TTS …" }
+        tts = openTts(this) { ttsLine.text = it }
         setContentView(ScrollView(this).apply {
             padForSystemBars()
             addView(LinearLayout(context).apply {
                 orientation = LinearLayout.VERTICAL
+                addView(ttsLine)
                 addView(TextView(context).apply { setText(R.string.help); textSize = 13f })
                 rows.forEach { addView(it) }
                 addView(log)
             })
         })
         KeyLog.add("app", "button test opened")
+    }
+
+    override fun onDestroy() {
+        tts.shutdown()
+        super.onDestroy()
     }
 
     override fun onResume() {

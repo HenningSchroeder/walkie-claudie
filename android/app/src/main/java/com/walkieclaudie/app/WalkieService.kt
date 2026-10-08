@@ -86,7 +86,7 @@ class WalkieService : Service() {
         baseUrl = prefs.getString("url", "")!!.trimEnd('/')
         key = prefs.getString("key", "")!!
         tone = ToneGenerator(AudioManager.STREAM_MUSIC, 90)
-        tts = TextToSpeech(this) {}
+        tts = openTts(this) {}
         tts.setAudioAttributes(AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_ASSISTANT).setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build())
         if (prefs.getBoolean(FLOATING, true) && Settings.canDrawOverlays(this)) addButton() // the in-app talk button works regardless
         addEarphone()
@@ -366,3 +366,28 @@ class WalkieService : Service() {
 
 /** Ringing, in a phone call, or in a VoIP call (KakaoTalk etc.): the walkie keeps its hands off. */
 fun Context.inCall() = getSystemService(AudioManager::class.java).mode != AudioManager.MODE_NORMAL
+
+/**
+ * Opens the phone's default TTS engine by name, in the phone's language, with that language's best
+ * installed voice (highest quality, then on-device). Left to defaults, a Samsung-engine phone read
+ * replies in a different, "Google-like" voice (10/8). [onReady] gets a one-line diagnosis.
+ */
+fun openTts(ctx: Context, onReady: (String) -> Unit): TextToSpeech {
+    val default = Settings.Secure.getString(ctx.contentResolver, Settings.Secure.TTS_DEFAULT_SYNTH)
+    lateinit var tts: TextToSpeech
+    tts = TextToSpeech(ctx, { status ->
+        if (status != TextToSpeech.SUCCESS) return@TextToSpeech onReady("TTS failed to start ($status), default=$default")
+        val locale = java.util.Locale.getDefault()
+        tts.setLanguage(locale)
+        tts.voices.orEmpty()
+            .filter { it.locale.language == locale.language && TextToSpeech.Engine.KEY_FEATURE_NOT_INSTALLED !in it.features }
+            .maxWithOrNull(compareBy({ it.quality }, { !it.isNetworkConnectionRequired }))
+            ?.let { tts.setVoice(it) }
+        // Which engine actually connected (hidden API, diagnosis only).
+        val using = runCatching { TextToSpeech::class.java.getMethod("getCurrentEngine").invoke(tts) }.getOrNull() ?: "?"
+        val v = tts.voice
+        val online = if (v?.isNetworkConnectionRequired == true) ", online" else ""
+        onReady("TTS default=$default · using=$using · voice=${v?.name} (${v?.locale}, quality ${v?.quality}$online) · installed=${tts.engines.joinToString { it.name }}")
+    }, default)
+    return tts
+}
