@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Walkie-talkie on the LCD green; drawn in a 1024 grid, scaled into the adaptive-icon safe zone. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
+    <group android:scaleX="0.07601" android:scaleY="0.07601" android:translateX="15.0071" android:translateY="16.1093">
+        <path android:fillColor="#2F2F31" android:pathData="M397,102 H442 A14,14 0 0 1 456,116 V248 A14,14 0 0 1 442,262 H397 A14,14 0 0 1 383,248 V116 A14,14 0 0 1 397,102 Z" />
+        <path android:fillColor="#2F2F31" android:pathData="M370,240 H656 A50,50 0 0 1 706,290 V845 A50,50 0 0 1 656,895 H370 A50,50 0 0 1 320,845 V290 A50,50 0 0 1 370,240 Z" />
+        <path android:fillColor="#9CA88A" android:pathData="M385,316 H641 A22,22 0 0 1 663,338 V520 A22,22 0 0 1 641,542 H385 A22,22 0 0 1 363,520 V338 A22,22 0 0 1 385,316 Z" />
+        <path android:fillColor="#4D4D4F" android:pathData="M410,608 H617 A25,25 0 0 1 642,633 V755 A25,25 0 0 1 617,780 H410 A25,25 0 0 1 385,755 V633 A25,25 0 0 1 410,608 Z" />
+        <path android:fillColor="#7BD36B" android:pathData="M620,278 A10,10 0 1 1 640,278 A10,10 0 1 1 620,278 Z" />
+        <path android:fillColor="#1F2818" android:pathData="M528.5,340.0 L528.5,522.0 L496.5,522.0 L496.5,340.0 Z" />
+        <path android:fillColor="#1F2818" android:pathData="M421.5,415.0 L603.5,415.0 L603.5,447.0 L421.5,447.0 Z" />
+        <path android:fillColor="#1F2818" android:pathData="M459.5,355.3 L588.2,484.0 L565.5,506.7 L436.8,378.0 Z" />
+        <path android:fillColor="#1F2818" android:pathData="M436.8,484.0 L565.5,355.3 L588.2,378.0 L459.5,506.7 Z" />
+    </group>
+</vector>
