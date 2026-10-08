@@ -7,6 +7,7 @@
     "start": "bun install --no-summary 1>&2 && bun server.ts"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.27.1"
+    "@modelcontextprotocol/sdk": "^1.27.1",
+    "qrcode": "^1.5.4"
   }
 }

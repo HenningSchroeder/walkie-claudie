@@ -26,9 +26,9 @@ import { readFileSync, writeFileSync, mkdirSync } from 'fs'
 import { homedir } from 'os'
 import { join } from 'path'
 
-const STATE_DIR = process.env.WALKIE_STATE_DIR
+export const STATE_DIR = process.env.WALKIE_STATE_DIR
   ?? join(process.env.CLAUDE_CONFIG_DIR ?? join(homedir(), '.claude'), 'channels', 'walkie')
-const PORT = Number(process.env.WALKIE_PORT ?? 7700)
+export const PORT = Number(process.env.WALKIE_PORT ?? 7700)
 const ENABLED = process.env.WALKIE_ENABLE === '1'
 const POLL_MS = 25_000
 
@@ -45,11 +45,11 @@ const keyBuf = Buffer.from(`Bearer ${key}`)
 
 type Reply = { seq: number; text: string; reply_to?: string; ts: string }
 
-// Starting the cursor at the clock keeps it above anything a previous run handed out,
-// so a phone reconnecting after a restart never skips new replies.
-// ponytail: outbox is in memory; replies the phone hasn't fetched are lost if the session exits.
-let seq = Date.now()
-const outbox: Reply[] = []
+// Replies are kept on disk so ones the phone hasn't fetched survive a session restart.
+// The cursor starts at the clock (or past the last saved reply), so a reconnecting phone never skips new ones.
+const OUTBOX_FILE = join(STATE_DIR, 'outbox.json')
+const outbox: Reply[] = (() => { try { return JSON.parse(readFileSync(OUTBOX_FILE, 'utf8')) } catch { return [] } })()
+let seq = Math.max(Date.now(), outbox.at(-1)?.seq ?? 0)
 let issues: string[] = []
 const seen = new Set<string>()
 const waiters = new Set<() => void>()
@@ -139,6 +139,7 @@ mcp.setRequestHandler(CallToolRequestSchema, async req => {
       if (typeof args.reply_to === 'string') r.reply_to = args.reply_to
       outbox.push(r)
       if (outbox.length > 200) outbox.shift()
+      writeFileSync(OUTBOX_FILE, JSON.stringify(outbox), { mode: 0o600 })
       wake()
       return { content: [{ type: 'text', text: 'queued for the phone' }] }
     }

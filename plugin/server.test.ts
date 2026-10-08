@@ -14,8 +14,7 @@ test('isPrivate', () => {
     expect(isPrivate(ip)).toBe(false)
 })
 
-async function start(enable: boolean) {
-  const dir = mkdtempSync(join(tmpdir(), 'walkie-'))
+async function start(enable: boolean, dir = mkdtempSync(join(tmpdir(), 'walkie-'))) {
   const port = 17700 + Math.floor(Math.random() * 1000)
   const client = new Client({ name: 'test', version: '0' })
   const inbound: any[] = []
@@ -71,5 +70,14 @@ test('say → channel notification, reply → poll', async () => {
     expect(again).toBeNull() // nothing new → still waiting
   } finally {
     await client.close()
+  }
+
+  // A new session on the same state dir still hands out the reply the phone may have missed.
+  const next = await start(true, dir)
+  try {
+    const got = await (await fetch(`http://127.0.0.1:${next.port}/poll?after=0`, { headers: auth })).json()
+    expect(got.replies.map((r: any) => r.text)).toEqual(['네, 받았어요'])
+  } finally {
+    await next.client.close()
   }
 }, 15_000)

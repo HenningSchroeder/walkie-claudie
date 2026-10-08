@@ -27,4 +27,6 @@
     <string name="err_speech">speech error %d</string>
     <string name="issues">Open items</string>
     <string name="no_issues">No open items</string>
+    <string name="scan">Scan QR</string>
+    <string name="bad_qr">Not a Walkie-Claudie QR. On the PC run /walkie:pair.</string>
 </resources>

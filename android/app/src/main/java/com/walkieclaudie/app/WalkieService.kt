@@ -76,6 +76,7 @@ class WalkieService : Service() {
         tts = TextToSpeech(this) {}
         tts.setAudioAttributes(AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_ASSISTANT).setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build())
         if (Settings.canDrawOverlays(this)) addButton() // the in-app talk button still works without it
+        Talk.lines.filter { it.state == Talk.State.SENDING }.forEach(outbox::put) // unsent from last time
         thread(isDaemon = true, name = "walkie-send") { sendLoop() }
         thread(isDaemon = true, name = "walkie-poll") { pollLoop() }
     }
@@ -181,7 +182,7 @@ class WalkieService : Service() {
     }
 
     private fun send(text: String) {
-        val line = Talk.Line(UUID.randomUUID().toString(), true, text, R.string.st_sending)
+        val line = Talk.Line(UUID.randomUUID().toString(), text, Talk.State.SENDING)
         Talk.lines.add(line)
         Talk.changed()
         tone.startTone(ToneGenerator.TONE_PROP_BEEP2, 200)
@@ -218,7 +219,7 @@ class WalkieService : Service() {
                 try {
                     http("POST", "/say", JSONObject().put("id", line.id).put("text", line.text).toString())
                     main.post {
-                        if (line.state == R.string.st_sending) line.state = R.string.st_received
+                        if (line.state == Talk.State.SENDING) line.state = Talk.State.RECEIVED
                         tone.startTone(ToneGenerator.TONE_PROP_ACK, 200)
                         Talk.changed()
                     }
@@ -263,8 +264,8 @@ class WalkieService : Service() {
     }
 
     private fun onReply(id: String, text: String, replyTo: String) {
-        Talk.lines.find { it.id == replyTo }?.state = R.string.st_answered
-        Talk.lines.add(Talk.Line(id, false, text, 0))
+        Talk.lines.find { it.id == replyTo }?.state = Talk.State.ANSWERED
+        Talk.lines.add(Talk.Line(id, text, Talk.State.REPLY))
         Talk.changed()
         tone.startTone(ToneGenerator.TONE_SUP_RADIO_ACK, 300)
         main.postDelayed({ tts.speak(text, TextToSpeech.QUEUE_ADD, null, id) }, 400)

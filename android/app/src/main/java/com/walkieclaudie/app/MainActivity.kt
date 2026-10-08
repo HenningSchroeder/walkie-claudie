@@ -7,7 +7,6 @@ import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
 import android.text.InputType
-import android.view.Gravity
 import android.view.View
 import android.view.WindowInsets
 import android.widget.Button
@@ -15,6 +14,9 @@ import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
+import android.widget.Toast
+import com.google.mlkit.vision.codescanner.GmsBarcodeScanning
+import org.json.JSONObject
 
 /** Connection settings, status, open items and conversation. Talking happens via WalkieService. */
 class MainActivity : Activity() {
@@ -42,7 +44,7 @@ class MainActivity : Activity() {
             Button(this).apply { setText(label); setOnClickListener { onClick() } },
             LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f),
         )
-        button(R.string.start) {
+        fun start() {
             prefs.edit()
                 .putString("url", url.text.toString().trim())
                 .putString("key", key.text.toString().trim())
@@ -54,6 +56,14 @@ class MainActivity : Activity() {
                 startForegroundService(Intent(this, WalkieService::class.java))
             }
         }
+        button(R.string.scan) {
+            GmsBarcodeScanning.getClient(this).startScan().addOnSuccessListener { code ->
+                val j = runCatching { JSONObject(code.rawValue!!) }.getOrNull()
+                if (j == null) Toast.makeText(this, R.string.bad_qr, Toast.LENGTH_LONG).show()
+                else { url.setText(j.getString("url")); key.setText(j.getString("key")); start() }
+            }
+        }
+        button(R.string.start) { start() }
         button(R.string.bg_stop) { stopService(Intent(this, WalkieService::class.java)) }
         button(R.string.button_test) { startActivity(Intent(this, ButtonTestActivity::class.java)) }
 
@@ -69,16 +79,32 @@ class MainActivity : Activity() {
             }
         }
 
-        setContentView(LinearLayout(this).apply {
+        val side = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            padForSystemBars()
             addView(status)
             addView(url)
             addView(key)
             addView(row)
             addView(issues)
-            addView(ScrollView(context).apply { addView(talk) }, LinearLayout.LayoutParams(-1, 0, 1f))
-            addView(talkButton, LinearLayout.LayoutParams(-1, -2).apply { gravity = Gravity.BOTTOM })
+        }
+        val conversation = ScrollView(this).apply { addView(talk) }
+        // Unfolded (wide): settings and open items left, conversation right. Folded: stacked.
+        val wide = resources.configuration.screenWidthDp >= 600
+        val content = LinearLayout(this).apply {
+            orientation = if (wide) LinearLayout.HORIZONTAL else LinearLayout.VERTICAL
+            if (wide) {
+                addView(side, LinearLayout.LayoutParams(0, -1, 1f))
+                addView(conversation, LinearLayout.LayoutParams(0, -1, 1f).apply { marginStart = 32 })
+            } else {
+                addView(side)
+                addView(conversation, LinearLayout.LayoutParams(-1, 0, 1f))
+            }
+        }
+        setContentView(LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            padForSystemBars()
+            addView(content, LinearLayout.LayoutParams(-1, 0, 1f))
+            addView(talkButton, LinearLayout.LayoutParams(-1, -2))
         })
     }
 
@@ -98,7 +124,7 @@ class MainActivity : Activity() {
         issues.text = if (Talk.issues.isEmpty()) getString(R.string.no_issues)
             else getString(R.string.issues) + "\n" + Talk.issues.joinToString("\n") { "• $it" }
         talk.text = Talk.lines.asReversed().joinToString("\n\n") {
-            if (it.mine) "🗣 ${it.text}  (${getString(it.state)})" else "🤖 ${it.text}"
+            if (it.mine) "🗣 ${it.text}  (${getString(it.state.label)})" else "🤖 ${it.text}"
         }
     }
 }

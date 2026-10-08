@@ -15,6 +15,7 @@ class App : Application() {
     override fun onCreate() {
         super.onCreate()
         KeyLog.ctx = this
+        Talk.load(java.io.File(filesDir, "talk.json"))
     }
 }
 

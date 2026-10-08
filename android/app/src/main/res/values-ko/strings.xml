@@ -26,4 +26,6 @@
     <string name="err_speech">음성 인식 오류 %d</string>
     <string name="issues">남은 이슈</string>
     <string name="no_issues">남은 이슈 없음</string>
+    <string name="scan">QR 스캔</string>
+    <string name="bad_qr">Walkie-Claudie QR이 아닙니다. PC에서 /walkie:pair 를 실행하세요.</string>
 </resources>
