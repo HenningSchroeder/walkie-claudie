@@ -55,6 +55,7 @@ class WalkieService : Service() {
         const val TTS_ENGINE = "tts_engine"
         const val TTS_VOICE = "tts_voice"
         const val TTS_RATE = "tts_rate"
+        const val CHIMES_MUTED = "chimes_muted" // we muted the notification stream; undo on next start if the app died
 
         /** The running service, for the accessibility service's volume-key hold. Main thread only. */
         var instance: WalkieService? = null
@@ -88,6 +89,7 @@ class WalkieService : Service() {
         prefs = getSharedPreferences(PREFS, MODE_PRIVATE)
         baseUrl = prefs.getString("url", "")!!.trimEnd('/')
         key = prefs.getString("key", "")!!
+        unmuteChimes() // left muted if the app died mid-recording
         tone = ToneGenerator(AudioManager.STREAM_MUSIC, 90)
         tts = openTts(this) {}
         setStatus(R.string.st_connecting)
@@ -122,6 +124,7 @@ class WalkieService : Service() {
         running = false
         session?.release()
         recognizer?.destroy()
+        unmuteChimes()
         if (::button.isInitialized) wm.removeView(button)
         tts.shutdown()
         tone.release()
@@ -224,6 +227,25 @@ class WalkieService : Service() {
     private var failures = 0 // in a row, without the recognizer getting ready
     private val maxRecording = Runnable { finishListening() } // a toggle someone forgot to press again
 
+    // Google's recognizer chimes (usage NOTIFICATION_EVENT → notification stream, Galaxy phone 10/8) when a
+    // session opens and when it closes on a pause, so a continued recording would chime at every pause and
+    // sound like it ended. The notification stream is muted from just after the first open chime until the
+    // user ends the recording, so only the open and the final close chime play. Music/podcasts are on another
+    // stream and keep playing. Already muted by the user: left alone. Muted when the app died: undone on start.
+    private val audio by lazy { getSystemService(AudioManager::class.java) }
+    private val muteChimes = Runnable {
+        if (!Talk.listening || finishing || prefs.getBoolean(CHIMES_MUTED, false) || audio.isStreamMute(AudioManager.STREAM_NOTIFICATION)) return@Runnable
+        if (runCatching { audio.adjustStreamVolume(AudioManager.STREAM_NOTIFICATION, AudioManager.ADJUST_MUTE, 0) }.isSuccess)
+            prefs.edit().putBoolean(CHIMES_MUTED, true).apply()
+    }
+
+    private fun unmuteChimes() {
+        main.removeCallbacks(muteChimes)
+        if (!prefs.getBoolean(CHIMES_MUTED, false)) return
+        runCatching { audio.adjustStreamVolume(AudioManager.STREAM_NOTIFICATION, AudioManager.ADJUST_UNMUTE, 0) }
+        prefs.edit().putBoolean(CHIMES_MUTED, false).apply()
+    }
+
     private fun toggleListening() {
         if (recognizer != null || Talk.listening) return finishListening()
         if (inCall()) return // the call owns the mic and the buttons
@@ -248,7 +270,10 @@ class WalkieService : Service() {
         r.setRecognitionListener(object : RecognitionListener {
             override fun onReadyForSpeech(params: Bundle?) {
                 failures = 0
-                if (first) tone.startTone(ToneGenerator.TONE_PROP_BEEP, 120) // the next sessions stay silent
+                if (first) {
+                    tone.startTone(ToneGenerator.TONE_PROP_BEEP, 120) // the next sessions stay silent
+                    main.postDelayed(muteChimes, 600) // the open chime (~330ms) plays around ready
+                }
             }
             override fun onResults(results: Bundle) {
                 if (recognizer !== r) return
@@ -298,6 +323,7 @@ class WalkieService : Service() {
     private fun finishListening() {
         if (!Talk.listening) return
         finishing = true
+        unmuteChimes() // the closing chime tells the user it ended
         val r = recognizer ?: return doneListening() // between sessions: nothing pending
         r.stopListening()
     }
@@ -335,6 +361,7 @@ class WalkieService : Service() {
 
     private fun endListening() {
         main.removeCallbacks(maxRecording)
+        unmuteChimes()
         recognizer?.destroy()
         recognizer = null
         setListening(false)
