@@ -10,13 +10,16 @@
  *   GET  /poll?after=<seq>   → long-poll (≤25 s) for replies with seq > after,
  *                              plus the current open-items list. `&wait=0` answers at once
  *                              (the phone's first poll, so it shows "connected" right away).
+ *   GET  /hello              → {name, port}: the phone lists channels with it.
  *
  * Every request needs `Authorization: Bearer <key>`. The key is generated on first
  * run in ~/.claude/channels/walkie/key. Requests from public IPs are refused.
  *
  * Installing the plugin starts this server in every Claude Code session on the machine.
- * Only the session launched with WALKIE_ENABLE=1 opens the port and exposes tools;
- * everywhere else it stays inert, so sessions never fight over the port or the phone.
+ * Only sessions launched with WALKIE_ENABLE=1 open a port and expose tools; everywhere
+ * else it stays inert. Each enabled session is a channel: it takes the first free port of
+ * WALKIE_PORT…+9 (default 7700) and is named WALKIE_NAME or its folder. All share one key;
+ * each port keeps its own outbox.
  */
 
 import { Server } from '@modelcontextprotocol/sdk/server/index.js'
@@ -25,11 +28,13 @@ import { ListToolsRequestSchema, CallToolRequestSchema } from '@modelcontextprot
 import { randomBytes, timingSafeEqual } from 'crypto'
 import { readFileSync, writeFileSync, mkdirSync } from 'fs'
 import { homedir, tmpdir } from 'os'
-import { join } from 'path'
+import { basename, join } from 'path'
 
 export const STATE_DIR = process.env.WALKIE_STATE_DIR
   ?? join(process.env.CLAUDE_CONFIG_DIR ?? join(homedir(), '.claude'), 'channels', 'walkie')
-export const PORT = Number(process.env.WALKIE_PORT ?? 7700)
+export const PORT = Number(process.env.WALKIE_PORT ?? 7700) // first of 10 channel ports
+export const CHANNELS = 10
+const NAME = process.env.WALKIE_NAME || basename(process.env.CLAUDE_PROJECT_DIR ?? process.cwd())
 const ENABLED = process.env.WALKIE_ENABLE === '1'
 const POLL_MS = 25_000
 
@@ -46,11 +51,19 @@ const keyBuf = Buffer.from(`Bearer ${key}`)
 
 type Reply = { seq: number; text: string; reply_to?: string; ts: string }
 
-// Replies are kept on disk so ones the phone hasn't fetched survive a session restart.
+// Replies are kept on disk, per port, so ones the phone hasn't fetched survive a session restart.
 // The cursor starts at the clock (or past the last saved reply), so a reconnecting phone never skips new ones.
-const OUTBOX_FILE = join(STATE_DIR, 'outbox.json')
-const outbox: Reply[] = (() => { try { return JSON.parse(readFileSync(OUTBOX_FILE, 'utf8')) } catch { return [] } })()
-let seq = Math.max(Date.now(), outbox.at(-1)?.seq ?? 0)
+let port = 0
+let OUTBOX_FILE = ''
+let outbox: Reply[] = []
+let seq = 0
+
+function openOutbox(p: number): void {
+  port = p
+  OUTBOX_FILE = join(STATE_DIR, p === PORT ? 'outbox.json' : `outbox-${p}.json`)
+  try { outbox = JSON.parse(readFileSync(OUTBOX_FILE, 'utf8')) } catch { outbox = [] }
+  seq = Math.max(Date.now(), outbox.at(-1)?.seq ?? 0)
+}
 let issues: string[] = []
 const seen = new Set<string>()
 const waiters = new Set<() => void>()
@@ -224,6 +237,8 @@ async function handle(req: Request, ip: string): Promise<Response> {
   if (!authorized(req)) return json({ error: 'bad key' }, 401)
   const url = new URL(req.url)
 
+  if (req.method === 'GET' && url.pathname === '/hello') return json({ name: NAME, port })
+
   if (req.method === 'POST' && url.pathname === '/say') {
     const body = await req.json().catch(() => null) as { id?: unknown; text?: unknown } | null
     const id = body?.id, text = body?.text
@@ -269,13 +284,22 @@ if (import.meta.main) {
     // Stay connected and quiet; the process exits when Claude Code closes stdin.
     process.stderr.write('walkie channel: inactive in this session (set WALKIE_ENABLE=1 to use it)\n')
   } else {
-    const http = Bun.serve({
-      port: PORT,
-      hostname: '0.0.0.0',
-      idleTimeout: 60, // must outlast a long-poll
-      fetch: (req, server) => handle(req, server.requestIP(req)?.address ?? ''),
-    })
-    process.stderr.write(`walkie channel: listening on :${http.port}, key in ${KEY_FILE}\n`)
+    // Another session holds a port → try the next one; that session is another channel on the phone.
+    let http: ReturnType<typeof Bun.serve> | undefined
+    for (let p = PORT; !http; p++) {
+      try {
+        http = Bun.serve({
+          port: p,
+          hostname: '0.0.0.0',
+          idleTimeout: 60, // must outlast a long-poll
+          fetch: (req, server) => handle(req, server.requestIP(req)?.address ?? ''),
+        })
+      } catch (err) {
+        if (p >= PORT + CHANNELS - 1) throw err
+      }
+    }
+    openOutbox(http.port)
+    process.stderr.write(`walkie channel: "${NAME}" listening on :${http.port}, key in ${KEY_FILE}\n`)
 
     // Claude Code closes stdin when the session ends; free the port for the next one.
     const shutdown = () => { http.stop(true); process.exit(0) }

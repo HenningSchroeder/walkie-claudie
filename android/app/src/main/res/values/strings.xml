@@ -39,7 +39,7 @@
     <string name="voice_speed">Speed %.1fx</string>
     <string name="voice_preview">Play sample</string>
     <string name="voice_sample">Walkie check. Can you hear me clearly?</string>
-    <string name="channel">CH1 CLAUDE</string>
+    <string name="channel">CH%1$d %2$s</string>
     <string name="me">"ME&gt; "</string>
     <string name="claude">"CLAUDE&gt; "</string>
     <string name="settings">Settings</string>
@@ -85,4 +85,9 @@
     <string name="app_version">App version %s</string>
     <string name="voice_n">Voice %d</string>
     <string name="voice_picked">Chosen voice</string>
+    <string name="channel_unnamed">CLAUDE</string>
+    <string name="channel_say">Channel %1$d, %2$s</string>
+    <string name="channel_scanning">Looking for channels…</string>
+    <string name="channel_none">No channel is open. Start a walkie session on the PC</string>
+    <string name="channel_only">This is the only open channel</string>
 </resources>

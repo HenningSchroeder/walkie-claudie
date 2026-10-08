@@ -40,6 +40,14 @@ object Talk {
         issues = j.getJSONArray("issues").let { a -> List(a.length()) { a.getString(it) } }
     }
 
+    /** Another channel's conversation. */
+    fun reload(f: File) {
+        lines.clear()
+        issues = emptyList()
+        load(f)
+        refresh()
+    }
+
     fun changed() {
         save()
         refresh()

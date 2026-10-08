@@ -27,12 +27,11 @@ test('isPrivate', () => {
     expect(isPrivate(ip)).toBe(false)
 })
 
-async function start(enable: boolean, dir = mkdtempSync(join(tmpdir(), 'walkie-'))) {
-  const port = 17700 + Math.floor(Math.random() * 1000)
+async function start(enable: boolean, dir = mkdtempSync(join(tmpdir(), 'walkie-')), port = 17700 + Math.floor(Math.random() * 1000), name = '') {
   const client = new Client({ name: 'test', version: '0' })
   const inbound: any[] = []
   client.fallbackNotificationHandler = async n => { inbound.push(n) }
-  const env = { ...process.env, PATH: dirname(process.execPath), WALKIE_STATE_DIR: dir, WALKIE_PORT: String(port), WALKIE_ENABLE: enable ? '1' : '' }
+  const env = { ...process.env, PATH: dirname(process.execPath), WALKIE_STATE_DIR: dir, WALKIE_PORT: String(port), WALKIE_ENABLE: enable ? '1' : '', WALKIE_NAME: name }
   await client.connect(new StdioClientTransport({
     command: 'bun', args: [join(import.meta.dir, 'server.ts')], env: env as Record<string, string>,
   }))
@@ -94,5 +93,23 @@ test('say → channel notification, reply → poll', async () => {
     expect(got.replies.map((r: any) => r.text)).toEqual(['네, 받았어요'])
   } finally {
     await next.client.close()
+  }
+}, 15_000)
+
+test('two sessions → two channels on neighbouring ports, each with its own name and outbox', async () => {
+  const a = await start(true, undefined, 18800 + Math.floor(Math.random() * 1000), '비서')
+  const b = await start(true, a.dir, a.port, '가구배치')
+  const auth = { authorization: `Bearer ${readFileSync(join(a.dir, 'key'), 'utf8').trim()}` }
+  try {
+    const hello = (p: number) => fetch(`http://127.0.0.1:${p}/hello`, { headers: auth }).then(r => r.json())
+    expect(await hello(a.port)).toEqual({ name: '비서', port: a.port })
+    expect(await hello(a.port + 1)).toEqual({ name: '가구배치', port: a.port + 1 })
+    await b.client.callTool({ name: 'reply', arguments: { text: '가구 답' } })
+    const poll = (p: number) => fetch(`http://127.0.0.1:${p}/poll?after=0&wait=0`, { headers: auth }).then(r => r.json())
+    expect((await poll(a.port)).replies).toHaveLength(0)
+    expect((await poll(a.port + 1)).replies.map((r: any) => r.text)).toEqual(['가구 답'])
+  } finally {
+    await a.client.close()
+    await b.client.close()
   }
 }, 15_000)

@@ -17,6 +17,8 @@ import android.view.View
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
+import android.widget.Toast
+import kotlin.concurrent.thread
 
 private const val TODO_OPEN = "todo_open"
 
@@ -24,6 +26,7 @@ private const val TODO_OPEN = "todo_open"
 class MainActivity : Activity() {
     private lateinit var body: Body
     private lateinit var state: TextView
+    private lateinit var channel: TextView
     private lateinit var antenna: Antenna
     private lateinit var u5: TextView
     private lateinit var u7: TextView
@@ -55,9 +58,10 @@ class MainActivity : Activity() {
         // Top LCD: channel, connection, usage meters.
         state = lcdText(Ui.S).apply { alpha = 0.75f }
         antenna = Antenna(this)
+        channel = lcdText().apply { setSingleLine(); ellipsize = android.text.TextUtils.TruncateAt.END }
         val head = LinearLayout(this).apply {
             gravity = Gravity.CENTER_VERTICAL
-            addView(lcdText().apply { setText(R.string.channel) }, LinearLayout.LayoutParams(0, -2, 1f))
+            addView(channel, LinearLayout.LayoutParams(0, -2, 1f))
             addView(state)
             addView(antenna, LinearLayout.LayoutParams(-2, -2).apply { marginStart = dpi(4) })
         }
@@ -73,8 +77,10 @@ class MainActivity : Activity() {
                 }, LinearLayout.LayoutParams(0, -2, 1f).apply { if (i > 0) marginStart = dpi(14) })
             }
         }
+        // Tap: next channel (another walkie session on the PC).
         body.lcd(LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
+            setOnClickListener { nextChannel() }
             addView(head)
             addView(meters, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dpi(4) })
         })
@@ -162,6 +168,24 @@ class MainActivity : Activity() {
         Talk.onChange = null
     }
 
+    private fun nextChannel() {
+        if (Talk.listening) return
+        Toast.makeText(this, R.string.channel_scanning, Toast.LENGTH_SHORT).show()
+        thread {
+            val live = Channels.scan(this)
+            runOnUiThread {
+                val now = Channels.port(this)
+                val next = live.firstOrNull { it > now } ?: live.firstOrNull()
+                when {
+                    next == null -> Toast.makeText(this, R.string.channel_none, Toast.LENGTH_LONG).show()
+                    next == now -> Toast.makeText(this, R.string.channel_only, Toast.LENGTH_SHORT).show()
+                    else -> Channels.switchTo(this, next)
+                }
+                render()
+            }
+        }
+    }
+
     private fun blink(on: Boolean) {
         if (Talk.status == R.string.st_connecting) antenna.bars = if (on) 1 else 0
         cursor.on = on
@@ -172,6 +196,7 @@ class MainActivity : Activity() {
         val running = WalkieService.instance != null
         val offline = Talk.status == R.string.st_offline
         state.setText(Talk.status)
+        channel.text = Channels.label(this) + if (Channels.live > 1) " ›" else ""
         antenna.bars = if (Talk.status == R.string.st_connected) 4 else if (Talk.status == R.string.st_connecting) 1 else 0
         when {
             Talk.listening -> body.led(Ui.LED_REC)

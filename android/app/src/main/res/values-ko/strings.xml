@@ -38,7 +38,7 @@
     <string name="voice_speed">속도 %.1f배</string>
     <string name="voice_preview">미리 듣기</string>
     <string name="voice_sample">무전 시험 중입니다. 잘 들리세요?</string>
-    <string name="channel">CH1 비서</string>
+    <string name="channel">CH%1$d %2$s</string>
     <string name="me">"나&gt; "</string>
     <string name="claude">"비서&gt; "</string>
     <string name="settings">설정</string>
@@ -84,4 +84,9 @@
     <string name="app_version">앱 버전 %s</string>
     <string name="voice_n">목소리 %d</string>
     <string name="voice_picked">고른 목소리</string>
+    <string name="channel_unnamed">비서</string>
+    <string name="channel_say">채널 %1$d, %2$s</string>
+    <string name="channel_scanning">채널 찾는 중…</string>
+    <string name="channel_none">열린 채널이 없어요. PC에서 무전기 세션을 켜 주세요</string>
+    <string name="channel_only">열린 채널이 이것 하나예요</string>
 </resources>

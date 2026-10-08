@@ -88,11 +88,16 @@ class WalkieService : Service() {
         startForeground(2, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE or ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK)
 
         prefs = getSharedPreferences(PREFS, MODE_PRIVATE)
-        baseUrl = prefs.getString("url", "")!!.trimEnd('/')
+        baseUrl = Channels.url(this)
         key = prefs.getString("key", "")!!
         unmuteChimes() // left muted if the app died mid-recording
         tone = ToneGenerator(AudioManager.STREAM_MUSIC, 90)
-        tts = openTts(this) {}
+        tts = openTts(this) {
+            if (prefs.getBoolean(Channels.ANNOUNCE, false)) { // just switched channel
+                prefs.edit().remove(Channels.ANNOUNCE).apply()
+                tts.speak(Channels.spoken(this), TextToSpeech.QUEUE_ADD, null, "channel")
+            }
+        }
         setStatus(R.string.st_connecting)
         if (prefs.getBoolean(FLOATING, true) && Settings.canDrawOverlays(this)) addButton() // the in-app talk button works regardless
         addEarphone()
@@ -103,6 +108,7 @@ class WalkieService : Service() {
         Talk.lines.filter { it.state == Talk.State.SENDING }.forEach(outbox::put) // unsent from last time
         thread(isDaemon = true, name = "walkie-send") { sendLoop() }
         thread(isDaemon = true, name = "walkie-poll") { pollLoop() }
+        thread(isDaemon = true, name = "walkie-scan") { Channels.scan(this); main.post { Talk.refresh() } } // names for the header
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -424,7 +430,10 @@ class WalkieService : Service() {
     }
 
     private fun pollLoop() {
-        var cursor = prefs.getLong("cursor", 0)
+        val cursorKey = Channels.cursorKey(this)
+        var cursor = prefs.getLong(cursorKey, 0)
+        // A channel never listened to may hold a long history: only its last 10 minutes are new to us.
+        val since = if (prefs.contains(cursorKey)) 0L else System.currentTimeMillis() - 10 * 60_000
         var wait = "&wait=0" // first poll after (re)connecting answers at once
         while (running) {
             try {
@@ -436,9 +445,10 @@ class WalkieService : Service() {
                 for (i in 0 until replies.length()) {
                     val r = replies.getJSONObject(i)
                     cursor = maxOf(cursor, r.getLong("seq"))
+                    if (runCatching { java.time.Instant.parse(r.getString("ts")).toEpochMilli() }.getOrDefault(Long.MAX_VALUE) < since) continue
                     main.post { onReply(r.getLong("seq").toString(), r.getString("text"), r.optString("reply_to")) }
                 }
-                prefs.edit().putLong("cursor", cursor).apply()
+                prefs.edit().putLong(cursorKey, cursor).apply()
                 val usage = res.optJSONObject("usage")
                 fun pct(k: String) = usage?.optJSONObject(k)?.optDouble("used_percentage")?.takeIf { !it.isNaN() }?.toInt() ?: -1
                 val u5 = pct("five_hour"); val u7 = pct("seven_day")
