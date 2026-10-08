@@ -1,6 +1,5 @@
 package com.walkieclaudie.app
 
-import android.app.Application
 import android.content.Context
 import android.media.AudioDeviceInfo
 import android.media.AudioManager
@@ -10,14 +9,6 @@ import android.view.KeyEvent
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-
-class App : Application() {
-    override fun onCreate() {
-        super.onCreate()
-        KeyLog.ctx = this
-        Talk.load(java.io.File(filesDir, "talk.json"))
-    }
-}
 
 /** In-process log shared by the activity, the accessibility service and the media session. Main thread only. */
 object KeyLog {

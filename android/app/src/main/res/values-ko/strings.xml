@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="a11y_desc">Walkie-Claudie가 켜져 있을 때 음량 버튼을 길게 눌러 Claude에게 말합니다. 짧게 누르면 음량이 평소처럼 바뀝니다. 버튼 테스트용 키 기록도 남깁니다.</string>
-    <string name="help">버튼 테스트 — 최근 누른 키가 맨 위. 다 하면 이 화면 스크린샷.\n1. [대기 시작] 누르기 (이어폰 버튼용)\n2. 이어폰 버튼 한 번 / 두 번 / 길게 — 이 화면에서, 홈 화면에서, 화면 끄고, 배송 앱 켜고\n3. 음량 길게: [접근성] › 설치된 앱 › Walkie-Claudie 켜기. 회색으로 막히면 [앱 정보] › ⋮ › 제한된 설정 허용 후 다시</string>
+    <string name="help">버튼 테스트 — 최근 누른 키가 맨 위. 다 하면 이 화면 스크린샷.\n1. 무전기를 먼저 [중지](첫 화면)한 뒤 [대기 시작] 누르기 (이어폰 버튼용)\n2. 이어폰 버튼 한 번 / 두 번 / 길게 — 이 화면에서, 홈 화면에서, 화면 끄고, 배송 앱 켜고\n3. 음량 길게: [접근성] › 설치된 앱 › Walkie-Claudie 켜기. 회색으로 막히면 [앱 정보] › ⋮ › 제한된 설정 허용 후 다시</string>
     <string name="bg_start">대기 시작</string>
     <string name="bg_stop">중지</string>
     <string name="a11y_open">접근성</string>

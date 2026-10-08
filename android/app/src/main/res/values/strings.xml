@@ -2,7 +2,7 @@
 <resources>
     <string name="app_name">Walkie-Claudie</string>
     <string name="a11y_desc">Hold a volume key to talk to Claude while Walkie-Claudie is on. Short presses still change the volume. Also logs key presses for the button test.</string>
-    <string name="help">BUTTON TEST — newest presses on top. Screenshot this screen when done.\n1. Tap [Start listening] (earphone buttons).\n2. Earphone button: single / double / long press — here, on the home screen, with the screen off, inside another app.\n3. Volume long-press: [Accessibility] › installed apps › Walkie-Claudie › on. Greyed out? [App info] › ⋮ › Allow restricted settings, then retry.</string>
+    <string name="help">BUTTON TEST — newest presses on top. Screenshot this screen when done.\n1. Stop the walkie first (main screen › Stop), then tap [Start listening] (earphone buttons).\n2. Earphone button: single / double / long press — here, on the home screen, with the screen off, inside another app.\n3. Volume long-press: [Accessibility] › installed apps › Walkie-Claudie › on. Greyed out? [App info] › ⋮ › Allow restricted settings, then retry.</string>
     <string name="bg_start">Start listening</string>
     <string name="bg_stop">Stop</string>
     <string name="a11y_open">Accessibility</string>
