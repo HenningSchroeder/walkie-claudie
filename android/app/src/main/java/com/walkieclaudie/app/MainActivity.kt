@@ -40,6 +40,16 @@ class MainActivity : Activity() {
             setText(prefs.getString("key", ""))
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
         }
+        // Pasting the pairing text ({"url":…,"key":…}, same as the QR) into the address box fills both fields.
+        url.addTextChangedListener(object : android.text.TextWatcher {
+            override fun afterTextChanged(e: android.text.Editable) {
+                val j = e.toString().trim().takeIf { it.startsWith("{") }?.let { runCatching { JSONObject(it) }.getOrNull() } ?: return
+                url.setText(j.optString("url"))
+                key.setText(j.optString("key"))
+            }
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+        })
         val row = LinearLayout(this)
         fun button(label: Int, onClick: () -> Unit) = row.addView(
             Button(this).apply { setText(label); setOnClickListener { onClick() } },
@@ -88,6 +98,7 @@ class MainActivity : Activity() {
         }
         trigger(R.string.trig_ear_single, WalkieService.EAR_SINGLE, true)
         trigger(R.string.trig_ear_double, WalkieService.EAR_DOUBLE, false)
+        triggers.addView(TextView(this).apply { setText(R.string.ear_hint); textSize = 13f; alpha = 0.7f })
         button(R.string.button_test) { startActivity(Intent(this, ButtonTestActivity::class.java)) }
 
         status = TextView(this).apply { textSize = 16f }

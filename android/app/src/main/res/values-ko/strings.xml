@@ -32,4 +32,5 @@
     <string name="trig_ear_single">이어폰 한 번 누르기</string>
     <string name="trig_ear_double">이어폰 두 번 누르기</string>
     <string name="a11y_needed">설치된 앱에서 Walkie-Claudie를 켜 주세요. 회색으로 막히면 앱 정보 › ⋮ › 제한된 설정 허용을 먼저.</string>
+    <string name="ear_hint">음악이 재생 중일 땐 이어폰 버튼이 음악 앱으로 가요. 아무것도 재생 중이 아니면(음악 일시정지 중 포함) 무전기로 가요.</string>
 </resources>
