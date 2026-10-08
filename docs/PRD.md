@@ -17,7 +17,7 @@ _이름: **Walkie-Claudie**(저장소·폴더 `walkie-claudie`, 워키토키 말
  버튼·녹음·재생                                                      HTTP 서버 + MCP 채널
 ```
 - **PC 쪽 = Claude Code 채널 플러그인.** 텔레그램 플러그인(`claude-plugins-official/telegram`)과 같은 방식: MCP 서버가 `claude/channel` 기능을 선언하고, 받은 말을 `notifications/claude/channel`로 세션에 넣고, Claude는 `reply` 도구로 답한다. 차이는 텔레그램 대신 폰과 직접 HTTP로 주고받는 것뿐.
-  - 실행: `claude --channels plugin:<이름>@<마켓>` (공식 마켓 밖 플러그인이 `--channels`에 붙는 조건은 **확인 필요**)
+  - 실행: `--channels`는 Anthropic 승인 목록(공식 마켓) 플러그인만 받음. 직접 만든 채널은 `claude --dangerously-load-development-channels plugin:<이름>@<마켓>`(또는 `server:<mcp이름>`)로 붙음 — CLI가 "로컬 개발용, 인터넷에서 받은 채널엔 쓰지 말라"고 경고함. Team/Enterprise 조직은 관리자가 `channelsEnabled: true`(+`allowedChannelPlugins`)를 켜야 함. (2.1.293 바이너리 확인)
 - **안드로이드 앱 = 무전기.** 포그라운드 서비스로 뒤에서 대기, 버튼으로 녹음, 답 오면 바로 재생.
 - 중계 서버는 두지 않는다(운영 비용·음성 데이터 책임을 지지 않기 위해). 폰이 PC 주소로 직접 붙는다.
 
@@ -34,7 +34,7 @@ _이름: **Walkie-Claudie**(저장소·폴더 `walkie-claudie`, 워키토키 말
 1. **남은 이슈 목록** — 대화가 길어지면 이야깃거리가 쌓이고, 계속 보고 있지 않으면 잊는다. 지금 걸려 있는 일(답해야 할 질문·승인 대기·진행 중 작업)을 짧은 목록으로 요약해 항상 보여줌.
    - 목록은 Claude가 관리: 플러그인에 `set_issues` 같은 도구를 두고, 답할 때마다 Claude가 최신 목록으로 덮어씀(추가·완료 처리). 앱은 받은 대로 표시. 완료된 건 지우거나 접어 둠
    - 플러그인 instructions에 "답할 때 남은 이슈 목록도 갱신"을 명시
-2. **Claude 사용량** — 남은 사용 한도(예: 5시간·주간 한도 %) 표시. 어디서 읽을지 **확인 필요**: 후보 ① Claude Code 상태줄(statusline)이 받는 정보에 사용 한도가 있으면 그걸 파일로 남겨 플러그인이 읽음 ② `~/.claude/projects` 기록으로 토큰 집계(한도 %는 못 냄). PC 플러그인이 값을 모아 폰에 보냄
+2. **Claude 사용량** — 남은 사용 한도(예: 5시간·주간 한도 %) 표시. 출처: statusline 명령이 stdin으로 받는 JSON의 `rate_limits.five_hour/seven_day.{used_percentage,resets_at}`(구독자만, 값은 API가 알려줄 때만). 상태줄 스크립트가 이 JSON을 파일로 남기고 플러그인이 읽음 — 사용자가 이미 상태줄을 쓰면 그 스크립트에 한 줄(tee) 추가 안내. PC 플러그인이 값을 모아 폰에 보냄
 3. **대화 기록** — 알아들은 말 / 답 글자(4장 5번). 각 말에 상태 표시(전송 대기·받음·답 옴)
 - 그 밖: 연결 상태(연결됨/끊김/재전송 대기 n개), 화면 아래 크게 '누르고 말하기' 버튼
 - 실기기: 접은 화면(좁음)은 한 줄 배치, 편 화면은 두 칸(왼쪽 이슈·사용량, 오른쪽 대화) 후보

@@ -1,0 +1,85 @@
+package com.walkieclaudie.app
+
+import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.Service
+import android.content.Intent
+import android.content.pm.ServiceInfo
+import android.media.AudioAttributes
+import android.media.AudioFormat
+import android.media.AudioTrack
+import android.media.session.MediaSession
+import android.media.session.PlaybackState
+import android.view.KeyEvent
+
+/**
+ * Holds an active MediaSession so Bluetooth earphone buttons reach us with the screen off
+ * or another app in front. Android routes media keys to the most recently *playing* session,
+ * so we play half a second of silence on every start.
+ */
+class MediaButtonService : Service() {
+    private lateinit var session: MediaSession
+
+    override fun onCreate() {
+        super.onCreate()
+        val nm = getSystemService(NotificationManager::class.java)
+        nm.createNotificationChannel(NotificationChannel("listen", getString(R.string.app_name), NotificationManager.IMPORTANCE_LOW))
+        val notification = Notification.Builder(this, "listen")
+            .setSmallIcon(android.R.drawable.ic_btn_speak_now)
+            .setContentText(getString(R.string.notif_text))
+            .build()
+        startForeground(1, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK)
+
+        session = MediaSession(this, "walkie").apply {
+            setCallback(object : MediaSession.Callback() {
+                override fun onMediaButtonEvent(intent: Intent): Boolean {
+                    @Suppress("DEPRECATION")
+                    val e = intent.getParcelableExtra<KeyEvent>(Intent.EXTRA_KEY_EVENT) ?: return false
+                    KeyLog.key("media", e)
+                    return true
+                }
+            })
+            setPlaybackState(
+                PlaybackState.Builder()
+                    .setActions(PlaybackState.ACTION_PLAY_PAUSE or PlaybackState.ACTION_PLAY or PlaybackState.ACTION_PAUSE or
+                        PlaybackState.ACTION_SKIP_TO_NEXT or PlaybackState.ACTION_SKIP_TO_PREVIOUS)
+                    .setState(PlaybackState.STATE_PLAYING, 0, 1f)
+                    .build()
+            )
+            isActive = true
+        }
+        KeyLog.add("media", "session active")
+    }
+
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        playSilence()
+        return START_STICKY
+    }
+
+    private fun playSilence() {
+        val rate = 8000
+        val samples = rate / 2
+        val track = AudioTrack.Builder()
+            .setAudioAttributes(AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA).setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).build())
+            .setAudioFormat(AudioFormat.Builder().setEncoding(AudioFormat.ENCODING_PCM_16BIT).setSampleRate(rate).setChannelMask(AudioFormat.CHANNEL_OUT_MONO).build())
+            .setTransferMode(AudioTrack.MODE_STATIC)
+            .setBufferSizeInBytes(samples * 2)
+            .build()
+        track.write(ShortArray(samples), 0, samples)
+        track.setNotificationMarkerPosition(samples)
+        track.setPlaybackPositionUpdateListener(object : AudioTrack.OnPlaybackPositionUpdateListener {
+            override fun onMarkerReached(t: AudioTrack) = t.release()
+            override fun onPeriodicNotification(t: AudioTrack) {}
+        })
+        track.play()
+    }
+
+    override fun onDestroy() {
+        session.release()
+        KeyLog.add("media", "session released")
+        super.onDestroy()
+    }
+
+    override fun onBind(intent: Intent?) = null
+}

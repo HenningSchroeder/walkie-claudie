@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Walkie-Claudie</string>
+    <string name="side_label">Walkie PTT</string>
+    <string name="a11y_desc">Logs hardware key presses (e.g. long-pressing volume) for the Walkie-Claudie button test. Keys are passed through unchanged.</string>
+    <string name="help">Button test. Press keys and watch the log.\n• Side key: Settings › Advanced features › Side button › Double press › Open app › \"Walkie PTT\"\n• Volume long-press: enable accessibility service\n• Earphone: start background listener, then try with the screen off / another app open</string>
+    <string name="bg_start">Start background listener</string>
+    <string name="bg_stop">Stop</string>
+    <string name="a11y_open">Accessibility settings</string>
+    <string name="copy">Copy log</string>
+    <string name="clear">Clear</string>
+    <string name="copied">Copied</string>
+    <string name="notif_text">Listening for earphone buttons</string>
+</resources>
