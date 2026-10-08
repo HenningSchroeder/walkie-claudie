@@ -89,6 +89,7 @@ _이름: **Walkie-Claudie**(저장소·폴더 `walkie-claudie`, 워키토키 말
 
 ## 12. 진행 방식
 - 새 프로젝트 폴더(`~/walkie-claudie`)에 git 시작 → 이 PRD를 `docs/PRD.md`로 → 새 Claude Code 세션 띄워 핸드오프. 비서는 지시·결과 전달만.
-- GitHub 공개 push는 사용자 승인 후.
+- GitHub: 10/8 비공개(private) 저장소로 push(사용자 승인). 공개 전환은 사용자가 따로 결정.
+- **공개 전 체크리스트**: ① 문서의 로컬 경로(`~/...` — CLAUDE.md 개발 메모, 이 문서 12장) 정리 ② PRD·CLAUDE.md의 개인 맥락(택배 일, 비서 세션 이름, 기기 모델) 다듬기 ③ 커밋 작성자 이메일 — GitHub noreply로 바꿀지 사용자 결정 ④ plugin.json author 채우기 ⑤ 직전에 기록 전체 다시 점검(키 값·Tailscale IP·홈 경로·이메일)
 - **공식화(사용자 결정 10/8)**: 쓸 만해지면 claude.ai/directory/manage에서 Plugin bundle로 제출(공개 GitHub 저장소, plugin.json, `claude plugin validate` 통과, 라이선스, 데이터 처리 설문, 보안 스캔). 주의: 채널 허용 목록은 `claude-plugins-official`의 채널 플러그인이고 커뮤니티 마켓은 허용 목록이 아님 — 디렉터리 등재만으로는 `--channels`가 안 될 수 있어, 등재 후 Anthropic에 채널 허용 목록 포함을 별도로 요청해야 함(문서상 '파트너 연락처와 조율'). 제출 전 plugin.json author 채우기.
 - 순서: ① 버튼 테스트 앱(실기기 측면·음량·이어폰 실측) ② PC 채널 플러그인 + 최소 앱(떠 있는 버튼, 글자 주고받기) ③ 끊김 대비·QR 연결·화면 3가지 ④ 나머지 버튼·README
