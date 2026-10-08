@@ -12,4 +12,19 @@
     <string name="clear">Clear</string>
     <string name="copied">Copied</string>
     <string name="notif_text">Listening for earphone buttons</string>
+    <string name="start">Save &amp; start</string>
+    <string name="button_test">Button test</string>
+    <string name="talk">Push to talk</string>
+    <string name="key_hint">Key (from ~/.claude/channels/walkie/key)</string>
+    <string name="notif_walkie">Walkie-Claudie is on</string>
+    <string name="st_off">Off</string>
+    <string name="st_connected">Connected</string>
+    <string name="st_offline">Disconnected</string>
+    <string name="st_sending">sending</string>
+    <string name="st_received">received</string>
+    <string name="st_answered">answered</string>
+    <string name="waiting">%d waiting to send</string>
+    <string name="err_speech">speech error %d</string>
+    <string name="issues">Open items</string>
+    <string name="no_issues">No open items</string>
 </resources>

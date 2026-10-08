@@ -11,4 +11,19 @@
     <string name="clear">지우기</string>
     <string name="copied">복사됨</string>
     <string name="notif_text">이어폰 버튼 대기 중</string>
+    <string name="start">저장 후 시작</string>
+    <string name="button_test">버튼 테스트</string>
+    <string name="talk">누르고 말하기</string>
+    <string name="key_hint">키 (~/.claude/channels/walkie/key)</string>
+    <string name="notif_walkie">Walkie-Claudie 켜짐</string>
+    <string name="st_off">꺼짐</string>
+    <string name="st_connected">연결됨</string>
+    <string name="st_offline">끊김</string>
+    <string name="st_sending">보내는 중</string>
+    <string name="st_received">받음</string>
+    <string name="st_answered">답 옴</string>
+    <string name="waiting">전송 대기 %d개</string>
+    <string name="err_speech">음성 인식 오류 %d</string>
+    <string name="issues">남은 이슈</string>
+    <string name="no_issues">남은 이슈 없음</string>
 </resources>
