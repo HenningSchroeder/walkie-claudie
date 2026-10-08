@@ -13,7 +13,7 @@
     <string name="notif_text">Listening for earphone buttons</string>
     <string name="button_test">Button test</string>
     <string name="talk">Talk</string>
-    <string name="key_hint">Key (from ~/.claude/channels/walkie/key)</string>
+    <string name="key_hint">Key from /walkie:pair on the PC</string>
     <string name="notif_walkie">Walkie-Claudie is on</string>
     <string name="st_off">Off</string>
     <string name="st_connected">Connected</string>
@@ -23,12 +23,12 @@
     <string name="st_answered">answered</string>
     <string name="waiting">%d waiting to send</string>
     <string name="err_speech">speech error %d</string>
-    <string name="bad_qr">Not a Walkie-Claudie QR. On the PC run /walkie:pair.</string>
+    <string name="bad_qr">Not a Walkie-Claudie QR. Run /walkie:pair on the PC.</string>
     <string name="trig_floating">Floating button</string>
     <string name="trig_volume">Hold volume key</string>
     <string name="trig_ear_single">Earphone single</string>
     <string name="trig_ear_double">Earphone double</string>
-    <string name="a11y_needed">Turn on Walkie-Claudie under Installed apps. Greyed out? App info › ⋮ › Allow restricted settings first.</string>
+    <string name="a11y_needed">Turn on Walkie-Claudie under Installed apps. Greyed out? First allow it under App info › ⋮ › Allow restricted settings.</string>
     <string name="voice">Voice</string>
     <string name="voice_engine">Engine</string>
     <string name="voice_engine_default">Phone default (%s)</string>
@@ -58,7 +58,7 @@
     <string name="usage_7d">Week</string>
     <string name="sec_connection">Connection</string>
     <string name="sec_talk">Talk buttons</string>
-    <string name="sec_check">Check</string>
+    <string name="sec_check">Troubleshooting</string>
     <string name="pc_address">PC address</string>
     <string name="key">Key</string>
     <string name="none">none</string>
@@ -68,12 +68,21 @@
     <string name="open">Open</string>
     <string name="clipboard_empty">Nothing copied</string>
     <string name="voice_auto_short">Automatic</string>
-    <string name="trig_volume_sub">While the screen is on</string>
-    <string name="trig_ear_single_sub">A music app that uses it keeps it</string>
-    <string name="trig_floating_sub">Long-press to take the earphone button back</string>
+    <string name="trig_volume_sub">Only while the screen is on</string>
+    <string name="trig_ear_single_sub">Playing music hands it to the music app. Long-press the floating button to take it back</string>
+    <string name="trig_floating_sub">Tap to talk, long-press to take the earphone button back</string>
     <string name="new_lines">▼ New</string>
     <string name="to_bottom">▼ Latest</string>
     <string name="err_speech_note">recording: %1$d sessions, speech errors %2$s</string>
     <string name="continued">resumed %d</string>
     <string name="earphone_buttons">Earphone buttons</string>
+    <string name="trig_ear_single_sub_nofloat">Playing music hands it to the music app. Turn the walkie off and on to take it back</string>
+    <string name="trig_ear_double_sub">Uses the earphone next-track signal. Skipping songs won\'t work while on</string>
+    <string name="trig_floating_sub_noear">Tap to talk</string>
+    <string name="tap_to_edit">%s · tap to type</string>
+    <string name="key_saved">saved</string>
+    <string name="button_test_sub">See which key presses reach the app</string>
+    <string name="app_version">App version %s</string>
+    <string name="voice_n">Voice %d</string>
+    <string name="voice_picked">Chosen voice</string>
 </resources>

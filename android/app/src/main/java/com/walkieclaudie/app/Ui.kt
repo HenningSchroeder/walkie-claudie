@@ -219,7 +219,7 @@ fun LinearLayout.menuRow(label: String, sub: String?, right: View?, onClick: (()
     val left = LinearLayout(c).apply {
         orientation = LinearLayout.VERTICAL
         addView(c.lcdText().apply { text = label; wrapByWord() })
-        if (sub != null) addView(c.lcdText(11f).apply { text = sub; alpha = 0.65f }, LinearLayout.LayoutParams(-2, -2).apply { topMargin = c.dpi(3) })
+        if (sub != null) addView(c.lcdText(11f).apply { text = sub; alpha = 0.65f; wrapByWord() }, LinearLayout.LayoutParams(-2, -2).apply { topMargin = c.dpi(3) })
     }
     addView(LinearLayout(c).apply {
         gravity = Gravity.CENTER_VERTICAL

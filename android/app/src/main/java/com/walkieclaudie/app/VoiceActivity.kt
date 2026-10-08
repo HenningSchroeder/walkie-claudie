@@ -97,10 +97,11 @@ class VoiceActivity : Activity() {
         menu.menuTitle(getString(R.string.voice_voice))
         val voices = t.phoneLanguageVoices()
         val wanted = prefs.getString(WalkieService.TTS_VOICE, "")!!
-        choice(getString(R.string.voice_auto), null, wanted == "") { pickVoice("", voices) }
-        voices.forEach { v ->
-            val sub = getString(R.string.voice_quality, v.quality) + if (v.isNetworkConnectionRequired) " · " + getString(R.string.voice_online) else ""
-            choice(v.name, sub, wanted == v.name) { pickVoice(v.name, voices) }
+        choice(getString(R.string.voice_auto), null, wanted == "") { pickVoice("", null, voices) }
+        // Engine voice names are IDs like "ko-kr-x-ism-network": shown numbered, the ID kept small for diagnosis.
+        voices.forEachIndexed { i, v ->
+            val label = getString(R.string.voice_n, i + 1) + if (v.isNetworkConnectionRequired) " · " + getString(R.string.voice_online) else ""
+            choice(label, getString(R.string.voice_quality, v.quality) + " · " + v.name, wanted == v.name) { pickVoice(v.name, label, voices) }
         }
 
         menu.addView(lcdText(11f).apply { text = diagnosis; alpha = 0.5f }, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dpi(10) })
@@ -129,12 +130,12 @@ class VoiceActivity : Activity() {
     }
 
     private fun pickEngine(name: String) {
-        prefs.edit().putString(WalkieService.TTS_ENGINE, name).putString(WalkieService.TTS_VOICE, "").apply()
+        prefs.edit().putString(WalkieService.TTS_ENGINE, name).putString(WalkieService.TTS_VOICE, "").remove(WalkieService.TTS_VOICE_LABEL).apply()
         reopen(speak = true) // a different engine has different voices
     }
 
-    private fun pickVoice(name: String, list: List<Voice>) {
-        prefs.edit().putString(WalkieService.TTS_VOICE, name).apply()
+    private fun pickVoice(name: String, label: String?, list: List<Voice>) {
+        prefs.edit().putString(WalkieService.TTS_VOICE, name).putString(WalkieService.TTS_VOICE_LABEL, label).apply()
         (list.find { it.name == name } ?: list.firstOrNull())?.let { tts?.setVoice(it) }
         build()
         sample()

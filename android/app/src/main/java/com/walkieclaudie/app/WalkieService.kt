@@ -55,6 +55,7 @@ class WalkieService : Service() {
         const val TTS_ENGINE = "tts_engine"
         const val TTS_VOICE = "tts_voice"
         const val TTS_RATE = "tts_rate"
+        const val TTS_VOICE_LABEL = "tts_voice_label" // "Voice 3 · online", for the settings line
         const val CHIMES_MUTED = "chimes_muted" // we muted the notification stream; undo on next start if the app died
 
         /** The running service, for the accessibility service's volume-key hold. Main thread only. */

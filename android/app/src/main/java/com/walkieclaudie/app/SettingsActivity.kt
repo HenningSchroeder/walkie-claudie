@@ -40,10 +40,10 @@ class SettingsActivity : Activity() {
         val key = prefs.getString("key", "")!!
 
         title(R.string.sec_connection)
-        row(R.string.pc_address, url.removePrefix("http://").ifEmpty { getString(R.string.none) }, action(R.string.paste) { paste() }) {
+        row(R.string.pc_address, getString(R.string.tap_to_edit, url.removePrefix("http://").ifEmpty { getString(R.string.none) }), action(R.string.paste) { paste() }) {
             edit(R.string.pc_address, url, "http://192.168.0.10:7700", InputType.TYPE_TEXT_VARIATION_URI) { setPairing(it) || saveUrl(it) }
         }
-        row(R.string.key, if (key.isEmpty()) getString(R.string.none) else "*".repeat(12), action(R.string.qr) { scan() }) {
+        row(R.string.key, getString(R.string.tap_to_edit, getString(if (key.isEmpty()) R.string.none else R.string.key_saved)), action(R.string.qr) { scan() }) {
             edit(R.string.key, key, getString(R.string.key_hint), InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD) { save { putString("key", it) } }
         }
 
@@ -55,19 +55,23 @@ class SettingsActivity : Activity() {
                 startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
             }
         }
-        switch(R.string.trig_ear_single, R.string.trig_ear_single_sub, WalkieService.EAR_SINGLE, true)
-        switch(R.string.trig_ear_double, 0, WalkieService.EAR_DOUBLE, false)
-        switch(R.string.trig_floating, R.string.trig_floating_sub, WalkieService.FLOATING, true)
+        // The earphone button is taken back by long-pressing the floating button, so each line says what the other allows.
+        val floating = prefs.getBoolean(WalkieService.FLOATING, true)
+        val ear = prefs.getBoolean(WalkieService.EAR_SINGLE, true) || prefs.getBoolean(WalkieService.EAR_DOUBLE, false)
+        switch(R.string.trig_ear_single, if (floating) R.string.trig_ear_single_sub else R.string.trig_ear_single_sub_nofloat, WalkieService.EAR_SINGLE, true)
+        switch(R.string.trig_ear_double, R.string.trig_ear_double_sub, WalkieService.EAR_DOUBLE, false)
+        switch(R.string.trig_floating, if (ear) R.string.trig_floating_sub else R.string.trig_floating_sub_noear, WalkieService.FLOATING, true)
 
         title(R.string.voice)
-        row(prefs.getString(WalkieService.TTS_VOICE, "")!!.ifEmpty { getString(R.string.voice_auto_short) },
+        val voice = prefs.getString(WalkieService.TTS_VOICE, "")!!
+        row(if (voice.isEmpty()) getString(R.string.voice_auto_short) else prefs.getString(WalkieService.TTS_VOICE_LABEL, null) ?: getString(R.string.voice_picked),
             getString(R.string.voice_speed, prefs.getFloat(WalkieService.TTS_RATE, 1f)), action(R.string.change)) {
             startActivity(Intent(this, VoiceActivity::class.java))
         }
 
         title(R.string.sec_check)
-        row(getString(R.string.button_test), null, action(R.string.open)) { startActivity(Intent(this, ButtonTestActivity::class.java)) }
-        menu.addView(lcdText(11f).apply { text = "build ${BuildConfig.BUILD}"; alpha = 0.5f }, LinearLayout.LayoutParams(-2, -2).apply { topMargin = dpi(10) })
+        row(getString(R.string.button_test), getString(R.string.button_test_sub), action(R.string.open)) { startActivity(Intent(this, ButtonTestActivity::class.java)) }
+        menu.addView(lcdText(11f).apply { text = getString(R.string.app_version, BuildConfig.BUILD); alpha = 0.5f }, LinearLayout.LayoutParams(-2, -2).apply { topMargin = dpi(10) })
     }
 
     private fun title(label: Int) = menu.menuTitle(getString(label))
