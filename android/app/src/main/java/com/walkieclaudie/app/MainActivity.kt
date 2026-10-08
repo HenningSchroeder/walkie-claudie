@@ -7,11 +7,11 @@ import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
-import android.text.Spannable
 import android.text.SpannableStringBuilder
 import android.text.Spanned
 import android.text.style.AbsoluteSizeSpan
 import android.text.style.ForegroundColorSpan
+import android.text.style.LeadingMarginSpan
 import android.view.Gravity
 import android.view.View
 import android.view.WindowInsets
@@ -38,6 +38,8 @@ class MainActivity : Activity() {
     private lateinit var heard: TextView
     private lateinit var power: TextView
     private val cursor by lazy { CursorSpan(this) }
+    private var shownText = ""
+    private var pinned = true
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -73,7 +75,7 @@ class MainActivity : Activity() {
 
         // Open items.
         todoHead = lcdText(Ui.S).apply { alpha = 0.75f }
-        todoList = lcdText().apply { setLineSpacing(0f, 1.35f) }
+        todoList = lcdText().apply { setLineSpacing(0f, 1.4f); wrapByWord() }
         todo = body.lcd(LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             addView(todoHead)
@@ -81,16 +83,23 @@ class MainActivity : Activity() {
         })
 
         // Conversation, newest at the bottom.
+        // Not selectable: a selectable TextView relays out on every cursor blink, which fights scrolling.
         talk = lcdText().apply {
-            setLineSpacing(0f, 1.3f)
+            setLineSpacing(0f, 1.4f)
             gravity = Gravity.BOTTOM
-            setTextIsSelectable(true)
+            wrapByWord()
         }
         log = body.lcd(ScrollView(this).apply {
             isFillViewport = true
             isVerticalScrollBarEnabled = false
             addView(talk)
         }, weight = 1f)
+        // Stay pinned to the newest line while the reader is at the bottom, even when the text grows
+        // or the open-items LCD above changes size; scrolling up unpins.
+        log.setOnScrollChangeListener { v, _, _, _, _ -> pinned = !v.canScrollVertically(1) }
+        val follow = View.OnLayoutChangeListener { _, _, _, _, _, _, _, _, _ -> if (pinned) log.post { log.scrollTo(0, talk.height) } }
+        log.addOnLayoutChangeListener(follow)
+        talk.addOnLayoutChangeListener(follow)
 
         // Transmitting: one inverted LCD in place of the two above.
         recHint = lcdText(Ui.S, Ui.LCD).apply { alpha = 0.8f }
@@ -130,13 +139,8 @@ class MainActivity : Activity() {
 
     private fun blink(on: Boolean) {
         if (Talk.status == R.string.st_connecting) antenna.bars = if (on) 1 else 0
-        // Re-setting the span is what makes a selectable TextView redraw that spot.
-        val t = talk.text as? Spannable ?: return
-        val start = t.getSpanStart(cursor).takeIf { it >= 0 } ?: return
-        val end = t.getSpanEnd(cursor)
         cursor.on = on
-        t.removeSpan(cursor)
-        t.setSpan(cursor, start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        talk.invalidate() // redraw only; no relayout
     }
 
     private fun render() {
@@ -172,36 +176,40 @@ class MainActivity : Activity() {
 
         val shown = Talk.issues.take(4)
         todoHead.text = getString(R.string.todo, Talk.issues.size)
-        todoList.text = (shown.map { "· $it" } +
-            if (Talk.issues.size > shown.size) listOf(getString(R.string.todo_more, Talk.issues.size - shown.size)) else emptyList())
-            .joinToString("\n")
+        todoList.text = SpannableStringBuilder().apply {
+            shown.forEach { para(todoList, "· ", it) }
+            if (Talk.issues.size > shown.size) para(todoList, "", getString(R.string.todo_more, Talk.issues.size - shown.size))
+        }
         todoList.visibility = if (shown.isEmpty()) View.GONE else View.VISIBLE
 
+        // Each exchange (my line + replies) starts with a gap; wrapped lines hang under the text, not the prefix.
         val sb = SpannableStringBuilder()
+        val gap = dpi(14)
         for (l in Talk.lines.takeLast(100)) {
-            if (sb.isNotEmpty()) sb.append("\n")
-            val start = sb.length
-            if (l.mine) {
-                sb.append(getString(R.string.me)).append(l.text)
-                if (l.state != Talk.State.ANSWERED) sb.append(" (").append(getString(l.state.label)).append(")")
-                sb.setSpan(ForegroundColorSpan(Ui.INK.alpha(0.6f)), start, sb.length, 0)
-            } else sb.append(getString(R.string.claude)).append(l.text)
+            if (l.mine) sb.para(talk, getString(R.string.me),
+                l.text + if (l.state != Talk.State.ANSWERED) " (${getString(l.state.label)})" else "",
+                GapAbove(gap), ForegroundColorSpan(Ui.INK.alpha(0.6f)))
+            else sb.para(talk, getString(R.string.claude), l.text)
         }
         val sys = listOfNotNull(
             getString(R.string.lost).takeIf { offline },
             Talk.statusDetail.ifEmpty { null },
         )
-        for (s in sys) {
-            if (sb.isNotEmpty()) sb.append("\n")
-            val start = sb.length
-            sb.append(s)
-            sb.setSpan(AbsoluteSizeSpan(Ui.S.toInt(), true), start, sb.length, 0)
-            sb.setSpan(ForegroundColorSpan(Ui.INK.alpha(0.55f)), start, sb.length, 0)
-        }
+        for (s in sys) sb.para(talk, "", s, GapAbove(gap), AbsoluteSizeSpan(Ui.S.toInt(), true), ForegroundColorSpan(Ui.INK.alpha(0.55f)))
         sb.append("█")
         sb.setSpan(cursor, sb.length - 1, sb.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        if (sb.toString() == shownText) return // polls usually change nothing here; leave the view alone
+        shownText = sb.toString()
         talk.text = sb
-        (log as ScrollView).post { log.scrollTo(0, talk.height) }
+    }
+
+    /** Appends a paragraph whose wrapped lines indent past [prefix]. */
+    private fun SpannableStringBuilder.para(view: TextView, prefix: String, text: String, vararg styles: Any) {
+        if (isNotEmpty()) append("\n")
+        val start = length
+        append(prefix).append(text)
+        setSpan(LeadingMarginSpan.Standard(0, view.paint.measureText(prefix).toInt()), start, length, 0)
+        for (s in styles) setSpan(s, start, length, 0)
     }
 }
 

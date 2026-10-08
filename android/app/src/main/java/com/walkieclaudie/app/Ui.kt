@@ -142,6 +142,11 @@ fun Context.key(label: Int, onClick: () -> Unit) = TextView(this).apply {
     setOnClickListener { onClick() }
 }
 
+/** Wrap Korean at spaces, not mid-word (Android 13+; older phones keep per-character wrapping). */
+fun TextView.wrapByWord() {
+    if (android.os.Build.VERSION.SDK_INT >= 33) lineBreakWordStyle = android.graphics.text.LineBreakConfig.LINE_BREAK_WORD_STYLE_PHRASE
+}
+
 /** Antenna: 4 bars (3dp wide, 4/7/10/13dp tall); unlit bars are ghost. */
 class Antenna(ctx: Context) : View(ctx) {
     var bars = 0
@@ -192,6 +197,15 @@ class CursorSpan(ctx: Context) : ReplacementSpan() {
 
     override fun draw(c: Canvas, t: CharSequence?, s: Int, e: Int, x: Float, top: Int, y: Int, bottom: Int, p: Paint) {
         if (on) c.drawRect(x + gap, y + drop - h, x + gap + w, y + drop, p)
+    }
+}
+
+/** Extra space above a paragraph's first line (its other lines keep normal spacing); none at the very top. */
+class GapAbove(private val px: Int) : android.text.style.LineHeightSpan {
+    override fun chooseHeight(t: CharSequence, start: Int, end: Int, v: Int, h: Int, fm: Paint.FontMetricsInt) {
+        if (start == 0 || start != (t as android.text.Spanned).getSpanStart(this)) return
+        fm.ascent -= px
+        fm.top -= px
     }
 }
 
