@@ -47,6 +47,7 @@ PC에 띄워 둔 Claude Code 세션과 안드로이드 폰으로 **무전기처�
   - **블루투스 이어폰 버튼**: 한 번(또는 두 번) 눌러 시작하고, 다시 누르거나 말을 멈추면 보냅니다. 화면이 꺼져 있어도 됩니다. 음악·팟캐스트 앱이 이어폰 버튼을 가져가면 그 앱이 우선이고, 다시 무전기로 쓰려면 떠 있는 🎙 버튼을 길게 누릅니다.
 - PC가 받으면 '받았어요' 효과음이 납니다. 연결이 끊겨 있으면 다시 연결될 때까지 계속 재전송합니다.
 - 답이 오면 '무전 오는 소리'가 난 뒤 음성으로 읽어 줍니다.
+- 답을 읽는 목소리는 앱의 **목소리** 화면에서 엔진·목소리·속도를 고를 수 있습니다(고르면 바로 미리 듣기).
 - 앱 화면에는 연결 상태, 남은 이슈(Claude가 관리하는 할 일 목록), 대화 기록이 나옵니다.
 - 전화가 울리거나 통화 중(인터넷 전화 포함)이면 무전기는 손을 뗍니다. 이어폰 버튼은 받기·끊기로, 음량 버튼은 통화 음량으로 갑니다. 통화 중에 온 답은 통화가 끝난 뒤 읽어 줍니다.
 
@@ -124,6 +125,7 @@ Talk to a Claude Code session running on your PC from your Android phone, **like
   - **Bluetooth earphone button**: press once (or double-press) to start; press again or stop talking to send. Works with the screen off. Once a music or podcast app takes the earphone button it keeps it; long-press the floating 🎙 button to take it back.
 - A confirmation sound plays once the PC has the message. If the connection is down, the app keeps retrying until it gets through.
 - When a reply arrives you hear a radio chirp, then the reply is read aloud.
+- Pick the reading voice in the app's **Voice** screen: engine, voice and speed, with a sample on every change.
 - The app shows the connection state, open items (a to-do list Claude keeps up to date) and the conversation.
 - While the phone rings or a call is on (VoIP included), the walkie keeps its hands off: the earphone button answers/hangs up and the volume keys set call volume. Replies that arrive during a call are read after it ends.
 

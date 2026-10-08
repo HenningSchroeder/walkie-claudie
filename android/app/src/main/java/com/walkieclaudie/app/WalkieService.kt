@@ -11,7 +11,6 @@ import android.content.SharedPreferences
 import android.content.pm.ServiceInfo
 import android.graphics.PixelFormat
 import android.graphics.drawable.GradientDrawable
-import android.media.AudioAttributes
 import android.media.AudioManager
 import android.media.ToneGenerator
 import android.media.session.MediaSession
@@ -52,6 +51,10 @@ class WalkieService : Service() {
         const val VOLUME = "trig_volume"
         const val EAR_SINGLE = "trig_ear_single"
         const val EAR_DOUBLE = "trig_ear_double"
+        // Voice: engine package ("" = phone default), voice name ("" = best), speech rate.
+        const val TTS_ENGINE = "tts_engine"
+        const val TTS_VOICE = "tts_voice"
+        const val TTS_RATE = "tts_rate"
 
         /** The running service, for the accessibility service's volume-key hold. Main thread only. */
         var instance: WalkieService? = null
@@ -87,7 +90,6 @@ class WalkieService : Service() {
         key = prefs.getString("key", "")!!
         tone = ToneGenerator(AudioManager.STREAM_MUSIC, 90)
         tts = openTts(this) {}
-        tts.setAudioAttributes(AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_ASSISTANT).setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build())
         if (prefs.getBoolean(FLOATING, true) && Settings.canDrawOverlays(this)) addButton() // the in-app talk button works regardless
         addEarphone()
         instance = this
@@ -245,6 +247,12 @@ class WalkieService : Service() {
             .putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM))
     }
 
+    /** Picks up a voice changed in VoiceActivity. */
+    fun reloadVoice() {
+        tts.shutdown()
+        tts = openTts(this) {}
+    }
+
     /** Volume key held past the long-press threshold: start talking; [holdEnd] on release sends. */
     fun holdStart() {
         if (recognizer == null) toggleListening()
@@ -366,28 +374,3 @@ class WalkieService : Service() {
 
 /** Ringing, in a phone call, or in a VoIP call (KakaoTalk etc.): the walkie keeps its hands off. */
 fun Context.inCall() = getSystemService(AudioManager::class.java).mode != AudioManager.MODE_NORMAL
-
-/**
- * Opens the phone's default TTS engine by name, in the phone's language, with that language's best
- * installed voice (highest quality, then on-device). Left to defaults, a Samsung-engine phone read
- * replies in a different, "Google-like" voice (10/8). [onReady] gets a one-line diagnosis.
- */
-fun openTts(ctx: Context, onReady: (String) -> Unit): TextToSpeech {
-    val default = Settings.Secure.getString(ctx.contentResolver, Settings.Secure.TTS_DEFAULT_SYNTH)
-    lateinit var tts: TextToSpeech
-    tts = TextToSpeech(ctx, { status ->
-        if (status != TextToSpeech.SUCCESS) return@TextToSpeech onReady("TTS failed to start ($status), default=$default")
-        val locale = java.util.Locale.getDefault()
-        tts.setLanguage(locale)
-        tts.voices.orEmpty()
-            .filter { it.locale.language == locale.language && TextToSpeech.Engine.KEY_FEATURE_NOT_INSTALLED !in it.features }
-            .maxWithOrNull(compareBy({ it.quality }, { !it.isNetworkConnectionRequired }))
-            ?.let { tts.setVoice(it) }
-        // Which engine actually connected (hidden API, diagnosis only).
-        val using = runCatching { TextToSpeech::class.java.getMethod("getCurrentEngine").invoke(tts) }.getOrNull() ?: "?"
-        val v = tts.voice
-        val online = if (v?.isNetworkConnectionRequired == true) ", online" else ""
-        onReady("TTS default=$default · using=$using · voice=${v?.name} (${v?.locale}, quality ${v?.quality}$online) · installed=${tts.engines.joinToString { it.name }}")
-    }, default)
-    return tts
-}

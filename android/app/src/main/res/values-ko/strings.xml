@@ -33,4 +33,14 @@
     <string name="trig_ear_double">이어폰 두 번 누르기</string>
     <string name="a11y_needed">설치된 앱에서 Walkie-Claudie를 켜 주세요. 회색으로 막히면 앱 정보 › ⋮ › 제한된 설정 허용을 먼저.</string>
     <string name="ear_hint">음악·팟캐스트 앱이 이어폰 버튼을 한 번 가져가면 그 앱 것으로 둬요(일시정지 중에도). 다시 무전기로 쓰려면 떠 있는 🎙 버튼을 길게 누르세요.</string>
+    <string name="voice">목소리</string>
+    <string name="voice_engine">엔진</string>
+    <string name="voice_engine_default">폰 기본 (%s)</string>
+    <string name="voice_voice">목소리</string>
+    <string name="voice_auto">자동 (가장 좋은 목소리)</string>
+    <string name="voice_quality">품질 %d</string>
+    <string name="voice_online">온라인</string>
+    <string name="voice_speed">속도 %.1f배</string>
+    <string name="voice_preview">미리 듣기</string>
+    <string name="voice_sample">무전 시험 중입니다. 잘 들리세요?</string>
 </resources>

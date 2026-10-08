@@ -38,6 +38,11 @@
         </activity>
 
         <activity
+            android:name=".VoiceActivity"
+            android:exported="false"
+            android:theme="@android:style/Theme.DeviceDefault.NoActionBar" />
+
+        <activity
             android:name=".ButtonTestActivity"
             android:exported="false"
             android:theme="@android:style/Theme.DeviceDefault.NoActionBar" />

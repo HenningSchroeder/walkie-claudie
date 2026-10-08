@@ -51,7 +51,8 @@ class MainActivity : Activity() {
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
         })
         val row = LinearLayout(this)
-        fun button(label: Int, onClick: () -> Unit) = row.addView(
+        val row2 = LinearLayout(this)
+        fun button(label: Int, into: LinearLayout = row, onClick: () -> Unit) = into.addView(
             Button(this).apply { setText(label); setOnClickListener { onClick() } },
             LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f),
         )
@@ -99,7 +100,8 @@ class MainActivity : Activity() {
         trigger(R.string.trig_ear_single, WalkieService.EAR_SINGLE, true)
         trigger(R.string.trig_ear_double, WalkieService.EAR_DOUBLE, false)
         triggers.addView(TextView(this).apply { setText(R.string.ear_hint); textSize = 13f; alpha = 0.7f })
-        button(R.string.button_test) { startActivity(Intent(this, ButtonTestActivity::class.java)) }
+        button(R.string.voice, row2) { startActivity(Intent(this, VoiceActivity::class.java)) }
+        button(R.string.button_test, row2) { startActivity(Intent(this, ButtonTestActivity::class.java)) }
 
         status = TextView(this).apply { textSize = 16f }
         issues = TextView(this).apply { textSize = 16f; setPadding(0, 16, 0, 16) }
@@ -119,6 +121,7 @@ class MainActivity : Activity() {
             addView(url)
             addView(key)
             addView(row)
+            addView(row2)
             addView(triggers)
             addView(issues)
         }
