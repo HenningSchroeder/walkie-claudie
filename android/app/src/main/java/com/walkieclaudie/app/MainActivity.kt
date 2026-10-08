@@ -19,6 +19,8 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 
+private const val TODO_OPEN = "todo_open"
+
 /** Status, usage, open items and conversation on LCDs; [settings][on/off][talk] keys. Talking happens via WalkieService. */
 class MainActivity : Activity() {
     private lateinit var body: Body
@@ -31,7 +33,9 @@ class MainActivity : Activity() {
     private lateinit var todo: View
     private lateinit var todoHead: TextView
     private lateinit var todoList: TextView
-    private lateinit var log: View
+    private lateinit var log: ScrollView
+    private lateinit var logBox: View
+    private lateinit var toBottom: TextView
     private lateinit var talk: TextView
     private lateinit var rec: View
     private lateinit var recHint: TextView
@@ -40,6 +44,9 @@ class MainActivity : Activity() {
     private val cursor by lazy { CursorSpan(this) }
     private var shownText = ""
     private var pinned = true
+    private var unseen = false // lines arrived while scrolled up
+    private var lineCount = -1
+    private val prefs by lazy { getSharedPreferences(WalkieService.PREFS, MODE_PRIVATE) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -73,13 +80,17 @@ class MainActivity : Activity() {
             addView(meters, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dpi(4) })
         })
 
-        // Open items.
+        // Open items; tap to fold down to the title line (remembered).
         todoHead = lcdText(Ui.S).apply { alpha = 0.75f }
         todoList = lcdText().apply { setLineSpacing(0f, 1.4f); wrapByWord() }
         todo = body.lcd(LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             addView(todoHead)
             addView(todoList, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dpi(4) })
+            setOnClickListener {
+                prefs.edit().putBoolean(TODO_OPEN, !prefs.getBoolean(TODO_OPEN, true)).apply()
+                render()
+            }
         })
 
         // Conversation, newest at the bottom.
@@ -89,14 +100,29 @@ class MainActivity : Activity() {
             gravity = Gravity.BOTTOM
             wrapByWord()
         }
-        log = body.lcd(ScrollView(this).apply {
+        log = ScrollView(this).apply {
             isFillViewport = true
             isVerticalScrollBarEnabled = false
             addView(talk)
+        }
+        // Scrolled up: an inverted chip bottom-right jumps back down; it says "new" if lines arrived meanwhile.
+        toBottom = lcdText(Ui.S, Ui.LCD).apply {
+            setBackgroundColor(Ui.INK)
+            setPadding(dpi(10), dpi(8), dpi(10), dpi(8))
+            visibility = View.GONE
+            setOnClickListener { log.smoothScrollTo(0, talk.height) }
+        }
+        logBox = body.lcd(android.widget.FrameLayout(this).apply {
+            addView(log)
+            addView(toBottom, android.widget.FrameLayout.LayoutParams(-2, -2, Gravity.BOTTOM or Gravity.END))
         }, weight = 1f)
         // Stay pinned to the newest line while the reader is at the bottom, even when the text grows
         // or the open-items LCD above changes size; scrolling up unpins.
-        log.setOnScrollChangeListener { v, _, _, _, _ -> pinned = !v.canScrollVertically(1) }
+        log.setOnScrollChangeListener { v, _, _, _, _ ->
+            pinned = !v.canScrollVertically(1)
+            if (pinned) unseen = false
+            showToBottom()
+        }
         val follow = View.OnLayoutChangeListener { _, _, _, _, _, _, _, _, _ -> if (pinned) log.post { log.scrollTo(0, talk.height) } }
         log.addOnLayoutChangeListener(follow)
         talk.addOnLayoutChangeListener(follow)
@@ -168,19 +194,20 @@ class MainActivity : Activity() {
         meter(u7, c7, R.string.usage_7d, Talk.usage7d)
 
         todo.visibility = if (Talk.listening) View.GONE else View.VISIBLE
-        log.visibility = todo.visibility
+        logBox.visibility = todo.visibility
         rec.visibility = if (Talk.listening) View.VISIBLE else View.GONE
         recHint.setText(if (Talk.hold) R.string.release_to_send else R.string.press_to_send)
         heard.text = if (Talk.partial.isEmpty()) "" else "\"${Talk.partial}\""
         power.setText(if (Talk.listening) R.string.cancel else if (running) R.string.power_off else R.string.power_on)
 
         val shown = Talk.issues.take(4)
-        todoHead.text = getString(R.string.todo, Talk.issues.size)
+        val open = prefs.getBoolean(TODO_OPEN, true)
+        todoHead.text = (if (open) "▼ " else "▶ ") + getString(R.string.todo, Talk.issues.size)
         todoList.text = SpannableStringBuilder().apply {
             shown.forEach { para(todoList, "· ", it) }
             if (Talk.issues.size > shown.size) para(todoList, "", getString(R.string.todo_more, Talk.issues.size - shown.size))
         }
-        todoList.visibility = if (shown.isEmpty()) View.GONE else View.VISIBLE
+        todoList.visibility = if (shown.isEmpty() || !open) View.GONE else View.VISIBLE
 
         // Each exchange (my line + replies) starts with a gap; wrapped lines hang under the text, not the prefix.
         val sb = SpannableStringBuilder()
@@ -201,6 +228,14 @@ class MainActivity : Activity() {
         if (sb.toString() == shownText) return // polls usually change nothing here; leave the view alone
         shownText = sb.toString()
         talk.text = sb
+        if (!pinned && lineCount >= 0 && Talk.lines.size > lineCount) unseen = true
+        lineCount = Talk.lines.size
+        showToBottom()
+    }
+
+    private fun showToBottom() {
+        toBottom.visibility = if (pinned) View.GONE else View.VISIBLE
+        toBottom.setText(if (unseen) R.string.new_lines else R.string.to_bottom)
     }
 
     /** Appends a paragraph whose wrapped lines indent past [prefix]. */

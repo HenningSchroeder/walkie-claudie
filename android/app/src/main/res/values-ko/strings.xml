@@ -70,4 +70,6 @@
     <string name="trig_volume_sub">화면 켜져 있을 때</string>
     <string name="trig_ear_single_sub">음악 앱이 쓰면 그 앱 우선</string>
     <string name="trig_floating_sub">길게 누르면 이어폰 버튼 되찾기</string>
+    <string name="new_lines">▼ 새 글</string>
+    <string name="to_bottom">▼ 맨 아래</string>
 </resources>

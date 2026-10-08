@@ -71,4 +71,6 @@
     <string name="trig_volume_sub">While the screen is on</string>
     <string name="trig_ear_single_sub">A music app that uses it keeps it</string>
     <string name="trig_floating_sub">Long-press to take the earphone button back</string>
+    <string name="new_lines">▼ New</string>
+    <string name="to_bottom">▼ Latest</string>
 </resources>
