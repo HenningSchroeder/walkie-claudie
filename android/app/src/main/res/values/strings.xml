@@ -3,7 +3,7 @@
     <string name="app_name">Walkie-Claudie</string>
     <string name="side_label">Walkie PTT</string>
     <string name="a11y_desc">Logs hardware key presses (e.g. long-pressing volume) for the Walkie-Claudie button test. Keys are passed through unchanged.</string>
-    <string name="help">BUTTON TEST — newest presses on top. Screenshot this screen when done.\n1. Tap [Start listening] (earphone buttons).\n2. Earphone button: single / double / long press — here, on the home screen, with the screen off, inside another app.\n3. Volume long-press: [Accessibility] › installed apps › Walkie-Claudie › on. Greyed out? [App info] › ⋮ › Allow restricted settings, then retry.\n4. Side key: Settings › Advanced features › Side button › Double press › Open app › \"Walkie PTT\". Double-press with screen on / locked / off — a beep means it worked.</string>
+    <string name="help">BUTTON TEST — newest presses on top. Screenshot this screen when done.\n1. Tap [Start listening] (earphone buttons).\n2. Earphone button: single / double / long press — here, on the home screen, with the screen off, inside another app.\n3. Volume long-press: [Accessibility] › installed apps › Walkie-Claudie › on. Greyed out? [App info] › ⋮ › Allow restricted settings, then retry.\n4. Side key: Settings › Advanced features › Side button › Double press › Open app › \"Walkie-Claudie\" (or \"Walkie PTT\" if listed). Double-press once, then tap the home-screen icon once, then come back here: compare the two [launch] lines.</string>
     <string name="bg_start">Start listening</string>
     <string name="bg_stop">Stop</string>
     <string name="a11y_open">Accessibility</string>

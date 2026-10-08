@@ -26,6 +26,7 @@ class MainActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        logLaunch(intent)
         requestPermissions(arrayOf(Manifest.permission.RECORD_AUDIO, Manifest.permission.POST_NOTIFICATIONS), 0)
         val prefs = getSharedPreferences(WalkieService.PREFS, MODE_PRIVATE)
 
@@ -106,6 +107,17 @@ class MainActivity : Activity() {
             addView(content, LinearLayout.LayoutParams(-1, 0, 1f))
             addView(talkButton, LinearLayout.LayoutParams(-1, -2))
         })
+    }
+
+    // Diagnostics for the Samsung side key: how does a side-key launch differ from an icon tap?
+    private fun logLaunch(i: Intent) = KeyLog.add(
+        "launch",
+        "flags=0x${Integer.toHexString(i.flags)} bounds=${i.sourceBounds} from=$referrer cat=${i.categories} extras=${i.extras?.keySet()}",
+    )
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        logLaunch(intent)
     }
 
     override fun onResume() {
