@@ -377,7 +377,7 @@ class WalkieService : Service() {
     }
 
     @Volatile private var sentBeepAt = 0L
-    private val RECEIVED_GAP_MS = 700L // "sent" beep (~0.3 s with its tail) + a clear pause
+    private val RECEIVED_GAP_MS = 1_200L // after the "sent" beep; 0.7 s still sounded run together on a real phone (10/9)
 
     private fun send(text: String) {
         val line = Talk.Line(UUID.randomUUID().toString(), text, Talk.State.SENDING)
