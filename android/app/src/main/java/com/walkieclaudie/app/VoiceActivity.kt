@@ -21,7 +21,7 @@ import java.util.Locale
  * Opens the chosen TTS engine (default: the phone's default engine) in the phone's language, with the
  * chosen voice (default: that language's best) and speed. [onReady] gets a one-line diagnosis.
  * Note: since One UI 7 Samsung's engine (com.samsung.SMT) refuses third-party apps, so Android falls
- * back to Google there (confirmed on a test phone, 10/8) — nothing an app can do about it.
+ * back to Google there (confirmed on a Galaxy phone, 10/8) — nothing an app can do about it.
  */
 fun openTts(ctx: Context, onReady: (String) -> Unit): TextToSpeech {
     val prefs = ctx.getSharedPreferences(WalkieService.PREFS, Context.MODE_PRIVATE)
@@ -48,7 +48,7 @@ fun openTts(ctx: Context, onReady: (String) -> Unit): TextToSpeech {
 
 /**
  * Installed voices in the phone's language, best first: quality, then online voices (they sounded
- * clearly more natural on the test phone, 10/8; Google's engine falls back to on-device when offline).
+ * clearly more natural on a Galaxy phone, 10/8; Google's engine falls back to on-device when offline).
  */
 fun TextToSpeech.phoneLanguageVoices(): List<Voice> = voices.orEmpty()
     .filter { it.locale.language == Locale.getDefault().language && TextToSpeech.Engine.KEY_FEATURE_NOT_INSTALLED !in it.features }
@@ -147,7 +147,7 @@ class VoiceActivity : Activity() {
         }
     }
 
-    // Radio lists, not spinners: on the test phone the spinners rendered empty (theme text colour).
+    // Radio lists, not spinners: on a Galaxy phone the spinners rendered empty (theme text colour).
     private fun RadioGroup.bind(labels: List<String>, selected: Int, onPick: (Int) -> Unit) {
         setOnCheckedChangeListener(null)
         removeAllViews()

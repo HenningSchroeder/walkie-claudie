@@ -177,7 +177,7 @@ class WalkieService : Service() {
 
     // --- earphone buttons ---
 
-    /** Earphones send no hold time (measured on a test earphone), so a press toggles talking. */
+    /** Earphones send no hold time (measured on Bluetooth earbuds), so a press toggles talking. */
     private fun addEarphone() {
         val keys = buildSet {
             if (prefs.getBoolean(EAR_SINGLE, true)) addAll(listOf(

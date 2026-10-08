@@ -10,6 +10,8 @@
 
 PC에 띄워 둔 Claude Code 세션과 안드로이드 폰으로 **무전기처럼** 대화합니다. 버튼을 누르고 말하면 Claude에게 가고, 답은 소리로 돌아옵니다. 화면을 보지 않아도 됩니다.
 
+택배 일을 하면서 손이 바빠 만들었습니다. 배송 앱을 쓰는 중에도 이어폰 버튼 하나로 Claude에게 일을 맡기고 답을 들을 수 있습니다.
+
 ```
 [안드로이드 앱] ── 같은 공유기 / Tailscale / VPN ── [PC: Claude Code 채널 플러그인] ⇄ Claude Code 세션
 ```
@@ -87,6 +89,8 @@ PC에 띄워 둔 Claude Code 세션과 안드로이드 폰으로 **무전기처�
 ## English
 
 Talk to a Claude Code session running on your PC from your Android phone, **like a walkie-talkie**: press a button and speak, and the reply comes back as audio. No need to look at the screen.
+
+Built by a parcel courier whose hands are always busy: even with the delivery app open, one press of the earphone button hands Claude a task and plays back the answer.
 
 ```
 [Android app] ── same Wi-Fi / Tailscale / VPN ── [PC: Claude Code channel plugin] ⇄ Claude Code session
