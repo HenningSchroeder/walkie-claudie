@@ -234,20 +234,23 @@ class WalkieService : Service() {
     private var failures = 0 // in a row, without the recognizer getting ready
     private val maxRecording = Runnable { finishListening() } // a toggle someone forgot to press again
 
-    // Google's recognizer chimes (usage NOTIFICATION_EVENT → notification stream, Galaxy phone 10/8) when a
-    // session opens and when it closes on a pause, so a continued recording would chime at every pause and
-    // sound like it ended. The notification stream is muted from just after the first open chime until the
-    // user ends the recording, so only the open and the final close chime play. Music/podcasts are on another
-    // stream and keep playing. Already muted by the user: left alone. Muted when the app died: undone on start.
+    // Google's recognizer chimes (usage NOTIFICATION_EVENT → notification stream, Galaxy phone 10/8) whenever a
+    // session opens or closes, so a continued recording chimed at every pause, and the chimes doubled our own
+    // beeps (and may play on the phone speaker too, being notifications). The notification stream is muted for
+    // the whole recording and a moment after, so only our beeps play (media stream: the earphones). Music and
+    // podcasts are on another stream. Already muted by the user: left alone. Muted when the app died: undone on start.
     private val audio by lazy { getSystemService(AudioManager::class.java) }
-    private val muteChimes = Runnable {
-        if (!Talk.listening || finishing || prefs.getBoolean(CHIMES_MUTED, false) || audio.isStreamMute(AudioManager.STREAM_NOTIFICATION)) return@Runnable
+    private val unmuteLater = Runnable { unmuteChimes() }
+
+    private fun muteChimes() {
+        main.removeCallbacks(unmuteLater)
+        if (prefs.getBoolean(CHIMES_MUTED, false) || audio.isStreamMute(AudioManager.STREAM_NOTIFICATION)) return
         if (runCatching { audio.adjustStreamVolume(AudioManager.STREAM_NOTIFICATION, AudioManager.ADJUST_MUTE, 0) }.isSuccess)
             prefs.edit().putBoolean(CHIMES_MUTED, true).apply()
     }
 
     private fun unmuteChimes() {
-        main.removeCallbacks(muteChimes)
+        main.removeCallbacks(unmuteLater)
         if (!prefs.getBoolean(CHIMES_MUTED, false)) return
         runCatching { audio.adjustStreamVolume(AudioManager.STREAM_NOTIFICATION, AudioManager.ADJUST_UNMUTE, 0) }
         prefs.edit().putBoolean(CHIMES_MUTED, false).apply()
@@ -264,6 +267,7 @@ class WalkieService : Service() {
         failures = 0
         main.postDelayed(maxRecording, 120_000)
         setListening(true)
+        muteChimes()
         session()
     }
 
@@ -279,7 +283,6 @@ class WalkieService : Service() {
                 failures = 0
                 if (first) {
                     tone.startTone(ToneGenerator.TONE_PROP_BEEP, 120) // the next sessions stay silent
-                    main.postDelayed(muteChimes, 600) // the open chime (~330ms) plays around ready
                 }
             }
             override fun onResults(results: Bundle) {
@@ -330,7 +333,6 @@ class WalkieService : Service() {
     private fun finishListening() {
         if (!Talk.listening) return
         finishing = true
-        unmuteChimes() // the closing chime tells the user it ended
         val r = recognizer ?: return doneListening() // between sessions: nothing pending
         r.stopListening()
     }
@@ -368,17 +370,21 @@ class WalkieService : Service() {
 
     private fun endListening() {
         main.removeCallbacks(maxRecording)
-        unmuteChimes()
         recognizer?.destroy()
         recognizer = null
+        main.postDelayed(unmuteLater, 1_000) // the closing chime comes a little after
         setListening(false)
     }
+
+    @Volatile private var sentBeepAt = 0L
+    private val RECEIVED_GAP_MS = 700L // "sent" beep (~0.3 s with its tail) + a clear pause
 
     private fun send(text: String) {
         val line = Talk.Line(UUID.randomUUID().toString(), text, Talk.State.SENDING)
         Talk.lines.add(line)
         Talk.changed()
         tone.startTone(ToneGenerator.TONE_PROP_BEEP2, 200)
+        sentBeepAt = android.os.SystemClock.uptimeMillis()
         outbox.put(line)
     }
 
@@ -413,9 +419,10 @@ class WalkieService : Service() {
                     http("POST", "/say", JSONObject().put("id", line.id).put("text", line.text).toString())
                     main.post {
                         if (line.state == Talk.State.SENDING) line.state = Talk.State.RECEIVED
-                        tone.startTone(ToneGenerator.TONE_PROP_ACK, 200)
                         Talk.changed()
                     }
+                    // On a LAN the ack is back within ~0.1 s: keep the "received" beep apart from the "sent" one.
+                    main.postAtTime({ tone.startTone(ToneGenerator.TONE_PROP_ACK, 200) }, sentBeepAt + RECEIVED_GAP_MS)
                     break
                 } catch (e: Exception) {
                     val now = System.currentTimeMillis()
