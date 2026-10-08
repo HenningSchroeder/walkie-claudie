@@ -46,10 +46,13 @@ fun openTts(ctx: Context, onReady: (String) -> Unit): TextToSpeech {
     return tts
 }
 
-/** Installed voices in the phone's language, best first (quality, then on-device). */
+/**
+ * Installed voices in the phone's language, best first: quality, then online voices (they sounded
+ * clearly more natural on the test phone, 10/8; Google's engine falls back to on-device when offline).
+ */
 fun TextToSpeech.phoneLanguageVoices(): List<Voice> = voices.orEmpty()
     .filter { it.locale.language == Locale.getDefault().language && TextToSpeech.Engine.KEY_FEATURE_NOT_INSTALLED !in it.features }
-    .sortedWith(compareByDescending<Voice> { it.quality }.thenBy { it.isNetworkConnectionRequired })
+    .sortedWith(compareByDescending<Voice> { it.quality }.thenByDescending { it.isNetworkConnectionRequired })
 
 /** Pick the engine, voice and speed; every change plays a sample sentence. */
 class VoiceActivity : Activity() {
