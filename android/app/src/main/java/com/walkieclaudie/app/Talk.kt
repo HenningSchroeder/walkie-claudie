@@ -26,6 +26,7 @@ object Talk {
     var listening = false
     var hold = false
     var partial = ""
+    var session = 0 // recognizer sessions in this recording (shown while transmitting)
     var onChange: (() -> Unit)? = null
     private var file: File? = null
 

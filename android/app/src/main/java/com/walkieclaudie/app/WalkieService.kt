@@ -221,6 +221,7 @@ class WalkieService : Service() {
     private var finishing = false
     private val errors = ArrayList<Int>()
     private var sessions = 0
+    private var failures = 0 // in a row, without the recognizer getting ready
     private val maxRecording = Runnable { finishListening() } // a toggle someone forgot to press again
 
     private fun toggleListening() {
@@ -231,6 +232,7 @@ class WalkieService : Service() {
         finishing = false
         errors.clear()
         sessions = 0
+        failures = 0
         main.postDelayed(maxRecording, 120_000)
         setListening(true)
         session()
@@ -241,8 +243,11 @@ class WalkieService : Service() {
         val r = SpeechRecognizer.createSpeechRecognizer(this)
         recognizer = r
         val first = sessions++ == 0
+        Talk.session = sessions
+        Talk.refresh()
         r.setRecognitionListener(object : RecognitionListener {
             override fun onReadyForSpeech(params: Bundle?) {
+                failures = 0
                 if (first) tone.startTone(ToneGenerator.TONE_PROP_BEEP, 120) // the next sessions stay silent
             }
             override fun onResults(results: Bundle) {
@@ -255,7 +260,16 @@ class WalkieService : Service() {
                 if (recognizer !== r) return
                 errors.add(error)
                 val pause = error == SpeechRecognizer.ERROR_SPEECH_TIMEOUT || error == SpeechRecognizer.ERROR_NO_MATCH
-                if (pause && !finishing) next(r) else doneListening() // anything heard so far still goes out
+                // Busy/client/network errors right after a session (a real phone's recognizer closes slowly)
+                // are retried with a growing pause; permission and language errors can't get better.
+                val fatal = error == SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS ||
+                    error == SpeechRecognizer.ERROR_LANGUAGE_NOT_SUPPORTED || error == SpeechRecognizer.ERROR_LANGUAGE_UNAVAILABLE
+                when {
+                    finishing || fatal -> doneListening() // anything heard so far still goes out
+                    pause -> next(r)
+                    ++failures <= 5 -> next(r, 300L * failures)
+                    else -> doneListening()
+                }
             }
             override fun onBeginningOfSpeech() {}
             override fun onRmsChanged(rmsdB: Float) {}
@@ -274,10 +288,10 @@ class WalkieService : Service() {
     }
 
     /** The recognizer closed a session on a pause: drop it and open a fresh one shortly. */
-    private fun next(r: SpeechRecognizer) {
+    private fun next(r: SpeechRecognizer, delayMs: Long = 300) {
         r.destroy()
         recognizer = null
-        main.postDelayed({ if (Talk.listening && recognizer == null && !finishing) session() }, 300)
+        main.postDelayed({ if (Talk.listening && recognizer == null && !finishing) session() }, delayMs)
     }
 
     /** The user ended the recording: the open session's result arrives in onResults/onError, then it sends. */
@@ -292,8 +306,9 @@ class WalkieService : Service() {
         val text = heard
         val failed = errors.filter { it != SpeechRecognizer.ERROR_SPEECH_TIMEOUT && it != SpeechRecognizer.ERROR_NO_MATCH }
         endListening()
-        if (failed.isNotEmpty() || text.isEmpty() && errors.isNotEmpty())
-            note(getString(R.string.err_speech_note, errors.joinToString(","), sessions))
+        // ponytail: diagnostic line while pause-continuation is being tuned on real phones; drop once it's stable.
+        if (failed.isNotEmpty() || sessions > 1 || text.isEmpty() && errors.isNotEmpty())
+            note(getString(R.string.err_speech_note, sessions, errors.joinToString(",").ifEmpty { "-" }))
         if (text.isEmpty()) tone.startTone(ToneGenerator.TONE_PROP_NACK, 300) else send(text)
     }
 

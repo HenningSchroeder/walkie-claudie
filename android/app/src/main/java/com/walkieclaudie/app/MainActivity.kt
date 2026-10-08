@@ -196,7 +196,8 @@ class MainActivity : Activity() {
         todo.visibility = if (Talk.listening) View.GONE else View.VISIBLE
         logBox.visibility = todo.visibility
         rec.visibility = if (Talk.listening) View.VISIBLE else View.GONE
-        recHint.setText(if (Talk.hold) R.string.release_to_send else R.string.press_to_send)
+        recHint.text = getString(if (Talk.hold) R.string.release_to_send else R.string.press_to_send) +
+            if (Talk.session > 1) " · " + getString(R.string.continued, Talk.session - 1) else ""
         heard.text = if (Talk.partial.isEmpty()) "" else "\"${Talk.partial}\""
         power.setText(if (Talk.listening) R.string.cancel else if (running) R.string.power_off else R.string.power_on)
 
