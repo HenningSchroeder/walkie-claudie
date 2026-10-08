@@ -14,7 +14,6 @@ import android.text.style.ForegroundColorSpan
 import android.text.style.LeadingMarginSpan
 import android.view.Gravity
 import android.view.View
-import android.view.WindowInsets
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
@@ -262,9 +261,3 @@ fun Activity.startWalkie() {
     }
 }
 
-/** targetSdk 35+ draws edge-to-edge; keep content clear of the status/nav bars and the keyboard. */
-fun View.padForSystemBars() = setOnApplyWindowInsetsListener { v, insets ->
-    val b = insets.getInsets(WindowInsets.Type.systemBars() or WindowInsets.Type.ime())
-    v.setPadding(32 + b.left, 32 + b.top, 32 + b.right, 32 + b.bottom)
-    insets
-}

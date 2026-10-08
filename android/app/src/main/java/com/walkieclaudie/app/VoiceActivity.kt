@@ -2,19 +2,13 @@ package com.walkieclaudie.app
 
 import android.app.Activity
 import android.content.Context
-import android.graphics.Typeface
 import android.media.AudioAttributes
 import android.os.Bundle
 import android.provider.Settings
 import android.speech.tts.TextToSpeech
 import android.speech.tts.Voice
-import android.widget.Button
 import android.widget.LinearLayout
-import android.widget.RadioButton
-import android.widget.RadioGroup
 import android.widget.ScrollView
-import android.widget.SeekBar
-import android.widget.TextView
 import java.util.Locale
 
 /**
@@ -54,106 +48,96 @@ fun TextToSpeech.phoneLanguageVoices(): List<Voice> = voices.orEmpty()
     .filter { it.locale.language == Locale.getDefault().language && TextToSpeech.Engine.KEY_FEATURE_NOT_INSTALLED !in it.features }
     .sortedWith(compareByDescending<Voice> { it.quality }.thenByDescending { it.isNetworkConnectionRequired })
 
-/** Pick the engine, voice and speed; every change plays a sample sentence. */
+/** Pick the engine, voice and speed on one LCD menu; every change plays a sample sentence. */
 class VoiceActivity : Activity() {
     private val prefs by lazy { getSharedPreferences(WalkieService.PREFS, MODE_PRIVATE) }
     private var tts: TextToSpeech? = null
-    private lateinit var engines: RadioGroup
-    private lateinit var voices: RadioGroup
-    private lateinit var info: TextView
-    private var voiceNames = listOf<String>()
+    private lateinit var menu: LinearLayout
+    private var diagnosis = ""
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        fun label(text: Int) = TextView(this).apply { setText(text); textSize = 14f; alpha = 0.7f; setPadding(0, 32, 0, 4) }
-
-        engines = RadioGroup(this)
-        voices = RadioGroup(this)
-        info = TextView(this).apply { textSize = 12f; alpha = 0.6f; setPadding(0, 24, 0, 0); setTextIsSelectable(true) }
-        val rate = prefs.getFloat(WalkieService.TTS_RATE, 1f)
-        val rateLabel = TextView(this).apply { textSize = 14f; alpha = 0.7f; setPadding(0, 32, 0, 4); text = getString(R.string.voice_speed, rate) }
-        // 0.5x … 2.0x in 0.1 steps
-        val rateBar = SeekBar(this).apply {
-            max = 15
-            progress = ((rate - 0.5f) * 10).toInt()
-            setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-                override fun onProgressChanged(bar: SeekBar, p: Int, fromUser: Boolean) {
-                    rateLabel.text = getString(R.string.voice_speed, 0.5f + p / 10f)
-                }
-                override fun onStartTrackingTouch(bar: SeekBar) {}
-                override fun onStopTrackingTouch(bar: SeekBar) {
-                    val r = 0.5f + bar.progress / 10f
-                    prefs.edit().putFloat(WalkieService.TTS_RATE, r).apply()
-                    tts?.setSpeechRate(r)
-                    sample()
-                }
-            })
-        }
-
-        setContentView(ScrollView(this).apply { padForSystemBars() }.also { it.addView(LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            addView(TextView(context).apply { setText(R.string.voice); textSize = 24f; typeface = Typeface.DEFAULT_BOLD })
-            addView(label(R.string.voice_engine))
-            addView(engines)
-            addView(rateLabel)
-            addView(rateBar)
-            addView(Button(context).apply { setText(R.string.voice_preview); setOnClickListener { sample() } },
-                LinearLayout.LayoutParams(-1, -2).apply { topMargin = 32 })
-            addView(label(R.string.voice_voice))
-            addView(voices)
-            addView(info)
-        }) })
-        reopen(fillEngines = true)
+        val body = Body(this) {}
+        if (WalkieService.instance != null) body.led(Ui.LED_OK)
+        menu = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        body.lcd(ScrollView(this).apply { isVerticalScrollBarEnabled = false; addView(menu) }, weight = 1f)
+        body.key(key(R.string.back) { finish() })
+        body.key(key(R.string.voice_preview) { sample() })
+        reopen()
     }
 
-    /** (Re)connects with the saved choice; refreshes the lists once the engine is up. */
-    private fun reopen(fillEngines: Boolean = false, speak: Boolean = false) {
+    /** (Re)connects with the saved choice; redraws the menu once the engine is up. */
+    private fun reopen(speak: Boolean = false) {
         tts?.shutdown()
-        tts = openTts(this) { diagnosis ->
-            info.text = "$diagnosis · build ${BuildConfig.BUILD}"
-            if (fillEngines) fillEngines()
-            fillVoices()
+        tts = openTts(this) {
+            diagnosis = "$it · build ${BuildConfig.BUILD}"
+            build()
             if (speak) sample()
         }
     }
 
-    private fun fillEngines() {
+    private fun build() {
         val t = tts ?: return
+        menu.removeAllViews()
+
+        val rate = prefs.getFloat(WalkieService.TTS_RATE, 1f)
+        menu.menuRow(getString(R.string.voice_speed, rate), null, LinearLayout(this).apply {
+            isBaselineAligned = false // else the two cells sit 1px apart in height and the second is clipped
+            addView(step("−") { setRate(rate - 0.1f) })
+            addView(step("+") { setRate(rate + 0.1f) }, LinearLayout.LayoutParams(-2, -2).apply { marginStart = dpi(8) })
+        }, null)
+
+        menu.menuTitle(getString(R.string.voice_engine))
+        val engine = prefs.getString(WalkieService.TTS_ENGINE, "")!!
         val default = Settings.Secure.getString(contentResolver, Settings.Secure.TTS_DEFAULT_SYNTH)
-        val list = t.engines
-        val keys = listOf("") + list.map { it.name }
-        val defaultLabel = list.find { it.name == default }?.label ?: default ?: "?"
-        val labels = listOf(getString(R.string.voice_engine_default, defaultLabel)) + list.map { it.label }
-        engines.bind(labels, keys.indexOf(prefs.getString(WalkieService.TTS_ENGINE, "")).coerceAtLeast(0)) { i ->
-            if (keys[i] == prefs.getString(WalkieService.TTS_ENGINE, "")) return@bind
-            prefs.edit().putString(WalkieService.TTS_ENGINE, keys[i]).putString(WalkieService.TTS_VOICE, "").apply()
-            reopen(speak = true) // a different engine has different voices
+        val defaultLabel = t.engines.find { it.name == default }?.label ?: default ?: "?"
+        choice(getString(R.string.voice_engine_default, defaultLabel), null, engine == "") { pickEngine("") }
+        t.engines.forEach { e -> choice(e.label, null, engine == e.name) { pickEngine(e.name) } }
+
+        menu.menuTitle(getString(R.string.voice_voice))
+        val voices = t.phoneLanguageVoices()
+        val wanted = prefs.getString(WalkieService.TTS_VOICE, "")!!
+        choice(getString(R.string.voice_auto), null, wanted == "") { pickVoice("", voices) }
+        voices.forEach { v ->
+            val sub = getString(R.string.voice_quality, v.quality) + if (v.isNetworkConnectionRequired) " · " + getString(R.string.voice_online) else ""
+            choice(v.name, sub, wanted == v.name) { pickVoice(v.name, voices) }
         }
+
+        menu.addView(lcdText(11f).apply { text = diagnosis; alpha = 0.5f }, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dpi(10) })
     }
 
-    private fun fillVoices() {
-        val t = tts ?: return
-        val list = t.phoneLanguageVoices()
-        voiceNames = listOf("") + list.map { it.name }
-        val labels = listOf(getString(R.string.voice_auto)) + list.map {
-            it.name + " · " + getString(R.string.voice_quality, it.quality) +
-                if (it.isNetworkConnectionRequired) " · " + getString(R.string.voice_online) else ""
-        }
-        voices.bind(labels, voiceNames.indexOf(prefs.getString(WalkieService.TTS_VOICE, "")).coerceAtLeast(0)) { i ->
-            if (voiceNames[i] == prefs.getString(WalkieService.TTS_VOICE, "")) return@bind
-            prefs.edit().putString(WalkieService.TTS_VOICE, voiceNames[i]).apply()
-            (list.find { it.name == voiceNames[i] } ?: list.firstOrNull())?.let { t.setVoice(it) }
-            sample()
-        }
+    /** A pick-one row: ■ chosen, □ not. */
+    private fun choice(label: String, sub: String?, on: Boolean, onPick: () -> Unit) =
+        menu.menuRow((if (on) "■ " else "□ ") + label, sub, null) { if (!on) onPick() }
+
+    /** Outlined −/+ cell, 40dp square so a thumb hits it. */
+    private fun step(label: String, onClick: () -> Unit) = lcdText().apply {
+        text = label
+        gravity = android.view.Gravity.CENTER
+        minWidth = dpi(40); minHeight = dpi(40)
+        background = android.graphics.drawable.GradientDrawable().apply { setStroke(dpi(1), Ui.INK) }
+        setOnClickListener { onClick() }
     }
 
-    // Radio lists, not spinners: on a Galaxy phone the spinners rendered empty (theme text colour).
-    private fun RadioGroup.bind(labels: List<String>, selected: Int, onPick: (Int) -> Unit) {
-        setOnCheckedChangeListener(null)
-        removeAllViews()
-        labels.forEachIndexed { i, l -> addView(RadioButton(context).apply { id = i + 1; text = l; textSize = 15f }) }
-        check(selected + 1)
-        setOnCheckedChangeListener { _, id -> if (id > 0) onPick(id - 1) }
+    // 0.5x … 2.0x in 0.1 steps
+    private fun setRate(r: Float) {
+        val rate = (Math.round(r * 10) / 10f).coerceIn(0.5f, 2f)
+        prefs.edit().putFloat(WalkieService.TTS_RATE, rate).apply()
+        tts?.setSpeechRate(rate)
+        build()
+        sample()
+    }
+
+    private fun pickEngine(name: String) {
+        prefs.edit().putString(WalkieService.TTS_ENGINE, name).putString(WalkieService.TTS_VOICE, "").apply()
+        reopen(speak = true) // a different engine has different voices
+    }
+
+    private fun pickVoice(name: String, list: List<Voice>) {
+        prefs.edit().putString(WalkieService.TTS_VOICE, name).apply()
+        (list.find { it.name == name } ?: list.firstOrNull())?.let { tts?.setVoice(it) }
+        build()
+        sample()
     }
 
     private fun sample() {

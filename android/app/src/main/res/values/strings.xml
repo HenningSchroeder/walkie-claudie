@@ -75,4 +75,5 @@
     <string name="to_bottom">▼ Latest</string>
     <string name="err_speech_note">recording: %1$d sessions, speech errors %2$s</string>
     <string name="continued">resumed %d</string>
+    <string name="earphone_buttons">Earphone buttons</string>
 </resources>

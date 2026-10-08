@@ -7,7 +7,6 @@ import android.content.Intent
 import android.os.Bundle
 import android.provider.Settings
 import android.text.InputType
-import android.view.Gravity
 import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.ScrollView
@@ -71,35 +70,13 @@ class SettingsActivity : Activity() {
         menu.addView(lcdText(11f).apply { text = "build ${BuildConfig.BUILD}"; alpha = 0.5f }, LinearLayout.LayoutParams(-2, -2).apply { topMargin = dpi(10) })
     }
 
-    private fun title(label: Int) = menu.addView(lcdText(Ui.S).apply { setText(label); alpha = 0.7f },
-        LinearLayout.LayoutParams(-2, -2).apply { topMargin = if (menu.childCount == 0) 0 else dpi(12); bottomMargin = dpi(2) })
+    private fun title(label: Int) = menu.menuTitle(getString(label))
 
     private fun row(label: Int, sub: String?, right: TextView, onClick: () -> Unit) = row(getString(label), sub, right, onClick)
 
-    private fun row(label: String, sub: String?, right: TextView, onClick: () -> Unit) {
-        val left = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            addView(lcdText().apply { text = label })
-            if (sub != null) addView(lcdText(11f).apply { text = sub; alpha = 0.65f }, LinearLayout.LayoutParams(-2, -2).apply { topMargin = dpi(3) })
-        }
-        menu.addView(LinearLayout(this).apply {
-            gravity = Gravity.CENTER_VERTICAL
-            minimumHeight = dpi(44) // comfortable tap target
-            setPadding(0, dpi(7), 0, dpi(7))
-            background = DottedLine(context)
-            setOnClickListener { onClick() }
-            addView(left, LinearLayout.LayoutParams(0, -2, 1f))
-            addView(right, LinearLayout.LayoutParams(-2, -2).apply { marginStart = dpi(8) })
-        })
-    }
+    private fun row(label: String, sub: String?, right: TextView, onClick: () -> Unit) = menu.menuRow(label, sub, right, onClick)
 
-    private fun action(label: Int, onClick: (() -> Unit)? = null) = lcdText().apply {
-        setText(label)
-        if (onClick != null) {
-            setPadding(dpi(8), dpi(8), 0, dpi(8)) // bigger tap target than the word
-            setOnClickListener { onClick() }
-        }
-    }
+    private fun action(label: Int, onClick: (() -> Unit)? = null) = lcdAction(getString(label), onClick)
 
     private fun switch(label: Int, sub: Int, pref: String, default: Boolean, onEnable: () -> Unit = {}) {
         val on = prefs.getBoolean(pref, default)

@@ -74,4 +74,5 @@
     <string name="to_bottom">▼ 맨 아래</string>
     <string name="err_speech_note">녹음: 세션 %1$d번, 인식 오류 %2$s</string>
     <string name="continued">이어 듣기 %d</string>
+    <string name="earphone_buttons">이어폰 버튼</string>
 </resources>

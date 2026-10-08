@@ -209,6 +209,38 @@ class GapAbove(private val px: Int) : android.text.style.LineHeightSpan {
     }
 }
 
+/** LCD menu (settings, voice, button test): a small section title. */
+fun LinearLayout.menuTitle(label: String) = addView(context.lcdText(Ui.S).apply { text = label; alpha = 0.7f },
+    LinearLayout.LayoutParams(-2, -2).apply { topMargin = if (childCount == 0) 0 else context.dpi(12); bottomMargin = context.dpi(2) })
+
+/** LCD menu row: label (+ dim [sub]) on the left, a word or chip on the right, dotted rule below. */
+fun LinearLayout.menuRow(label: String, sub: String?, right: View?, onClick: (() -> Unit)?) {
+    val c = context
+    val left = LinearLayout(c).apply {
+        orientation = LinearLayout.VERTICAL
+        addView(c.lcdText().apply { text = label; wrapByWord() })
+        if (sub != null) addView(c.lcdText(11f).apply { text = sub; alpha = 0.65f }, LinearLayout.LayoutParams(-2, -2).apply { topMargin = c.dpi(3) })
+    }
+    addView(LinearLayout(c).apply {
+        gravity = Gravity.CENTER_VERTICAL
+        minimumHeight = c.dpi(44) // comfortable tap target
+        setPadding(0, c.dpi(7), 0, c.dpi(7))
+        background = DottedLine(c)
+        if (onClick != null) setOnClickListener { onClick() }
+        addView(left, LinearLayout.LayoutParams(0, -2, 1f))
+        if (right != null) addView(right, LinearLayout.LayoutParams(-2, -2).apply { marginStart = c.dpi(8) })
+    })
+}
+
+/** A tappable word at the right of a menu row. */
+fun Context.lcdAction(label: String, onClick: (() -> Unit)? = null) = lcdText().apply {
+    text = label
+    if (onClick != null) {
+        setPadding(dpi(8), dpi(8), 0, dpi(8)) // bigger tap target than the word
+        setOnClickListener { onClick() }
+    }
+}
+
 /** Dotted rule under a menu row. */
 class DottedLine(ctx: Context) : Drawable() {
     private val paint = Paint().apply {
