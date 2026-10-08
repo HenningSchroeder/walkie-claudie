@@ -2,10 +2,11 @@
 <resources>
     <string name="side_label">워키 버튼</string>
     <string name="a11y_desc">Walkie-Claudie 버튼 테스트용으로 하드웨어 키(음량 길게 누르기 등)를 기록합니다. 키 동작은 그대로 전달됩니다.</string>
-    <string name="help">버튼 테스트. 키를 누르고 기록을 보세요.\n• 측면 버튼: 설정 › 유용한 기능 › 측면 버튼 › 두 번 누르기 › 앱 열기 › \"워키 버튼\"\n• 음량 길게: 접근성 서비스 켜기\n• 이어폰: 백그라운드 대기 시작 후 화면 끔 / 다른 앱 켠 상태로 눌러 보기</string>
-    <string name="bg_start">백그라운드 대기 시작</string>
+    <string name="help">버튼 테스트 — 최근 누른 키가 맨 위. 다 하면 이 화면 스크린샷.\n1. [대기 시작] 누르기 (이어폰 버튼용)\n2. 이어폰 버튼 한 번 / 두 번 / 길게 — 이 화면에서, 홈 화면에서, 화면 끄고, 배송 앱 켜고\n3. 음량 길게: [접근성] › 설치된 앱 › Walkie-Claudie 켜기. 회색으로 막히면 [앱 정보] › ⋮ › 제한된 설정 허용 후 다시\n4. 측면 버튼: 설정 › 유용한 기능 › 측면 버튼 › 두 번 누르기 › 앱 열기 › \"워키 버튼\". 화면 켜짐 / 잠김 / 꺼짐에서 두 번 눌러 \'삑\' 나면 성공</string>
+    <string name="bg_start">대기 시작</string>
     <string name="bg_stop">중지</string>
-    <string name="a11y_open">접근성 설정</string>
+    <string name="a11y_open">접근성</string>
+    <string name="app_info">앱 정보</string>
     <string name="copy">기록 복사</string>
     <string name="clear">지우기</string>
     <string name="copied">복사됨</string>

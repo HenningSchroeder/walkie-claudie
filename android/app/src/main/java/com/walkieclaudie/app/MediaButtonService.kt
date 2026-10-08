@@ -4,7 +4,10 @@ import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.ServiceInfo
 import android.media.AudioAttributes
 import android.media.AudioFormat
@@ -50,6 +53,12 @@ class MediaButtonService : Service() {
             isActive = true
         }
         KeyLog.add("media", "session active")
+        registerReceiver(screen, IntentFilter().apply { addAction(Intent.ACTION_SCREEN_ON); addAction(Intent.ACTION_SCREEN_OFF) })
+    }
+
+    // Marks screen on/off in the log so earphone presses can be read against it.
+    private val screen = object : BroadcastReceiver() {
+        override fun onReceive(c: Context, i: Intent) = KeyLog.add("screen", i.action!!.substringAfterLast('_'))
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -76,6 +85,7 @@ class MediaButtonService : Service() {
     }
 
     override fun onDestroy() {
+        unregisterReceiver(screen)
         session.release()
         KeyLog.add("media", "session released")
         super.onDestroy()
