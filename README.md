@@ -42,9 +42,9 @@ PC에 띄워 둔 Claude Code 세션과 안드로이드 폰으로 **무전기처�
 
 ### 사용
 - 말하기 버튼은 세 가지이고, [설정]에서 각각 켜고 끌 수 있습니다.
-  - **떠 있는 [말하기] 버튼**: 누르면 '삑' 소리가 나고 말하면 됩니다. 말을 멈추면 자동으로 보냅니다('삑삑').
+  - **떠 있는 [말하기] 버튼**: 누르면 '삑' 소리가 나고 말하면 됩니다. 다시 누르면 보냅니다('삑삑'). 말하다 잠깐 멈춰도 끊기지 않습니다(최대 2분).
   - **음량 버튼 길게**: 누르고 있는 동안 말하고, 떼면 보냅니다. 짧게 누르면 평소처럼 음량이 바뀝니다. 화면이 켜져 있을 때만 되며, 접근성에서 Walkie-Claudie를 켜야 합니다(회색으로 막히면 앱 정보 › ⋮ › 제한된 설정 허용).
-  - **블루투스 이어폰 버튼**: 한 번(또는 두 번) 눌러 시작하고, 다시 누르거나 말을 멈추면 보냅니다. 화면이 꺼져 있어도 됩니다. 음악·팟캐스트 앱이 이어폰 버튼을 가져가면 그 앱이 우선이고, 다시 무전기로 쓰려면 떠 있는 [말하기] 버튼을 길게 누릅니다.
+  - **블루투스 이어폰 버튼**: 한 번(또는 두 번) 눌러 시작하고, 다시 누르면 보냅니다. 화면이 꺼져 있어도 됩니다. 음악·팟캐스트 앱이 이어폰 버튼을 가져가면 그 앱이 우선이고, 다시 무전기로 쓰려면 떠 있는 [말하기] 버튼을 길게 누릅니다.
 - PC가 받으면 '받았어요' 효과음이 납니다. 연결이 끊겨 있으면 다시 연결될 때까지 계속 재전송합니다.
 - 답이 오면 '무전 오는 소리'가 난 뒤 음성으로 읽어 줍니다.
 - 답을 읽는 목소리는 앱의 **목소리** 화면에서 엔진·목소리·속도를 고를 수 있습니다(고르면 바로 미리 듣기).
@@ -120,9 +120,9 @@ Talk to a Claude Code session running on your PC from your Android phone, **like
 
 ### Usage
 - Three talk triggers, each switchable in Settings:
-  - **Floating Talk button**: tap, wait for the beep, and speak. It sends when you stop talking (double beep).
+  - **Floating Talk button**: tap, wait for the beep, and speak. Tap again to send (double beep). Pausing mid-sentence doesn't cut you off (2 minutes max).
   - **Hold a volume key**: talk while holding, release to send. Short presses still change the volume. Screen on only; turn on Walkie-Claudie under Accessibility (greyed out? App info › ⋮ › Allow restricted settings).
-  - **Bluetooth earphone button**: press once (or double-press) to start; press again or stop talking to send. Works with the screen off. Once a music or podcast app takes the earphone button it keeps it; long-press the floating Talk button to take it back.
+  - **Bluetooth earphone button**: press once (or double-press) to start; press again to send. Works with the screen off. Once a music or podcast app takes the earphone button it keeps it; long-press the floating Talk button to take it back.
 - A confirmation sound plays once the PC has the message. If the connection is down, the app keeps retrying until it gets through.
 - When a reply arrives you hear a radio chirp, then the reply is read aloud.
 - Pick the reading voice in the app's **Voice** screen: engine, voice and speed, with a sample on every change.
