@@ -5,6 +5,7 @@ import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
+import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.ServiceInfo
@@ -90,6 +91,9 @@ class WalkieService : Service() {
         if (prefs.getBoolean(FLOATING, true) && Settings.canDrawOverlays(this)) addButton() // the in-app talk button works regardless
         addEarphone()
         instance = this
+        // A call that starts mid-reply or mid-recording wins: stop both.
+        if (android.os.Build.VERSION.SDK_INT >= 31) getSystemService(AudioManager::class.java)
+            .addOnModeChangedListener(mainExecutor, modeListener)
         Talk.lines.filter { it.state == Talk.State.SENDING }.forEach(outbox::put) // unsent from last time
         thread(isDaemon = true, name = "walkie-send") { sendLoop() }
         thread(isDaemon = true, name = "walkie-poll") { pollLoop() }
@@ -100,7 +104,14 @@ class WalkieService : Service() {
         return START_NOT_STICKY
     }
 
+    // lazy: the listener type only exists on API 31+, so build it only behind the version checks.
+    private val modeListener by lazy {
+        AudioManager.OnModeChangedListener { if (inCall()) { tts.stop(); recognizer?.cancel(); endListening() } }
+    }
+
     override fun onDestroy() {
+        if (android.os.Build.VERSION.SDK_INT >= 31) getSystemService(AudioManager::class.java)
+            .removeOnModeChangedListener(modeListener)
         instance = null
         running = false
         session?.release()
@@ -175,7 +186,7 @@ class WalkieService : Service() {
                 override fun onMediaButtonEvent(intent: Intent): Boolean {
                     @Suppress("DEPRECATION")
                     val e = intent.getParcelableExtra<KeyEvent>(Intent.EXTRA_KEY_EVENT) ?: return false
-                    if (e.keyCode !in keys) return false
+                    if (e.keyCode !in keys || inCall()) return false // calls keep answer/hang-up
                     if (e.action == KeyEvent.ACTION_DOWN && e.repeatCount == 0) toggleListening()
                     return true
                 }
@@ -197,6 +208,7 @@ class WalkieService : Service() {
 
     private fun toggleListening() {
         recognizer?.let { it.stopListening(); return }
+        if (inCall()) return // the call owns the mic and the buttons
         tts.stop() // talking over a reply interrupts it
         val r = SpeechRecognizer.createSpeechRecognizer(this)
         recognizer = r
@@ -327,6 +339,13 @@ class WalkieService : Service() {
         Talk.lines.find { it.id == replyTo }?.state = Talk.State.ANSWERED
         Talk.lines.add(Talk.Line(id, text, Talk.State.REPLY))
         Talk.changed()
+        speakWhenFree(id, text)
+    }
+
+    /** Replies wait out a phone call, then play with the incoming-radio chirp. */
+    private fun speakWhenFree(id: String, text: String) {
+        if (!running) return
+        if (inCall()) return run { main.postDelayed({ speakWhenFree(id, text) }, 2_000) }
         tone.startTone(ToneGenerator.TONE_SUP_RADIO_ACK, 300)
         main.postDelayed({ tts.speak(text, TextToSpeech.QUEUE_ADD, null, id) }, 400)
     }
@@ -337,3 +356,6 @@ class WalkieService : Service() {
         Talk.changed()
     }
 }
+
+/** Ringing, in a phone call, or in a VoIP call (KakaoTalk etc.): the walkie keeps its hands off. */
+fun Context.inCall() = getSystemService(AudioManager::class.java).mode != AudioManager.MODE_NORMAL

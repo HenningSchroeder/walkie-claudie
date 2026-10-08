@@ -25,7 +25,7 @@ class KeyAccessibilityService : AccessibilityService() {
         val up = event.keyCode == KeyEvent.KEYCODE_VOLUME_UP
         if (!up && event.keyCode != KeyEvent.KEYCODE_VOLUME_DOWN) return false
         val enabled = getSharedPreferences(WalkieService.PREFS, MODE_PRIVATE).getBoolean(WalkieService.VOLUME, true)
-        if (!enabled || WalkieService.instance == null) return false
+        if (!enabled || WalkieService.instance == null || inCall()) return false // in a call: normal call volume
         // ponytail: one volume key at a time; pressing both at once is treated as two separate presses.
         when (event.action) {
             KeyEvent.ACTION_DOWN -> if (event.repeatCount == 0) { holding = false; main.postDelayed(startHold, LONG_MS) }
