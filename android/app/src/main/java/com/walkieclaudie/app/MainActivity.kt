@@ -286,16 +286,16 @@ class MainActivity : Activity() {
         for (l in Talk.lines.takeLast(100)) {
             if (l.mine) sb.para(talk, getString(R.string.me),
                 l.text + if (l.state != Talk.State.ANSWERED) " (${getString(l.state.label)})" else "",
-                GapAbove(gap), ForegroundColorSpan(Ui.INK.alpha(0.6f)))
-            else if (l.state == Talk.State.NOTE) sb.para(talk, "", "-- ${l.text} --", GapAbove(gap),
-                AbsoluteSizeSpan(Ui.S.toInt(), true), ForegroundColorSpan(Ui.INK.alpha(0.55f)))
+                ForegroundColorSpan(Ui.INK.alpha(0.6f)), gap = gap)
+            else if (l.state == Talk.State.NOTE) sb.para(talk, "", "-- ${l.text} --",
+                AbsoluteSizeSpan(Ui.S.toInt(), true), ForegroundColorSpan(Ui.INK.alpha(0.55f)), gap = gap)
             else sb.para(talk, getString(R.string.claude), l.text)
         }
         val sys = listOfNotNull(
             getString(R.string.lost).takeIf { offline },
             Talk.statusDetail.ifEmpty { null },
         )
-        for (s in sys) sb.para(talk, "", s, GapAbove(gap), AbsoluteSizeSpan(Ui.S.toInt(), true), ForegroundColorSpan(Ui.INK.alpha(0.55f)))
+        for (s in sys) sb.para(talk, "", s, AbsoluteSizeSpan(Ui.S.toInt(), true), ForegroundColorSpan(Ui.INK.alpha(0.55f)), gap = gap)
         sb.append("█")
         sb.setSpan(cursor, sb.length - 1, sb.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
         if (sb.toString() == shownText) return // polls usually change nothing here; leave the view alone
@@ -311,9 +311,15 @@ class MainActivity : Activity() {
         toBottom.setText(if (unseen) R.string.new_lines else R.string.to_bottom)
     }
 
-    /** Appends a paragraph whose wrapped lines indent past [prefix]. */
-    private fun SpannableStringBuilder.para(view: TextView, prefix: String, text: String, vararg styles: Any) {
-        if (isNotEmpty()) append("\n")
+    /**
+     * Appends a paragraph whose wrapped lines indent past [prefix], [gap] px below the one before.
+     * The gap is a blank line sized to it: a LineHeightSpan gap spread to every wrapped line on a real phone.
+     */
+    private fun SpannableStringBuilder.para(view: TextView, prefix: String, text: String, vararg styles: Any, gap: Int = 0) {
+        if (isNotEmpty()) {
+            append("\n")
+            if (gap > 0) { val s = length; append("\n"); setSpan(AbsoluteSizeSpan(gap * 2 / 3), s, length, 0) }
+        }
         val start = length
         append(prefix).append(text)
         setSpan(LeadingMarginSpan.Standard(0, view.paint.measureText(prefix).toInt()), start, length, 0)
