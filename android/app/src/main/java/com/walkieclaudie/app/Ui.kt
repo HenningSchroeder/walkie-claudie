@@ -34,6 +34,7 @@ object Ui {
     const val GHOST = 0x1F1F2818 // ink at 12%
     const val LED_OK = 0xFF7BD36B.toInt()
     const val LED_REC = 0xFFC0392B.toInt()
+    const val LED_DARK = 0xFF1C1C1C.toInt() // an unlit key LED
     const val L = 24f
     const val M = 15f
     const val S = 12f
@@ -103,6 +104,11 @@ class KeyDrawable(ctx: Context) : Drawable() {
     private var pressed = false
     var face = Ui.KEY
         set(v) { field = v; invalidateSelf() }
+    /** A small LED on the face's top-right (the power key: lit while the walkie is on); 0 = none. */
+    var led = 0
+        set(v) { field = v; invalidateSelf() }
+    private val ledR = ctx.dp(3)
+    private val ledInset = ctx.dp(9)
 
     override fun isStateful() = true
     override fun onStateChange(state: IntArray): Boolean {
@@ -122,6 +128,10 @@ class KeyDrawable(ctx: Context) : Drawable() {
         paint.color = face
         val dy = if (pressed) sink else 0f
         c.drawRoundRect(b.left, b.top + dy, b.right, b.bottom - sh + dy, r, r, paint)
+        if (led != 0) {
+            paint.color = led
+            c.drawCircle(b.right - ledInset, b.top + ledInset + dy, ledR, paint)
+        }
     }
 
     override fun setAlpha(alpha: Int) {}

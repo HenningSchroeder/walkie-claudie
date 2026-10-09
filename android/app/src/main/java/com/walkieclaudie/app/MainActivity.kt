@@ -155,8 +155,8 @@ class MainActivity : Activity() {
         power = key(R.string.power_off) {
             when {
                 Talk.listening -> startService(Intent(this, WalkieService::class.java).setAction(WalkieService.CANCEL))
-                WalkieService.instance != null -> stopService(Intent(this, WalkieService::class.java))
-                else -> startWalkie()
+                WalkieService.instance != null -> { stopService(Intent(this, WalkieService::class.java)); buzz(off = true) }
+                else -> { startWalkie(); buzz(off = false) }
             }
         }
         body.key(power)
@@ -269,6 +269,7 @@ class MainActivity : Activity() {
         recHint.text = getString(if (Talk.hold) R.string.release_to_send else R.string.press_to_send) +
             if (Talk.session > 1) " · " + getString(R.string.continued, Talk.session - 1) else ""
         heard.text = if (Talk.partial.isEmpty()) "" else "\"${Talk.partial}\""
+        (power.background as KeyDrawable).led = if (running) Ui.LED_OK else Ui.LED_DARK
         power.setText(if (Talk.listening) R.string.cancel else if (running) R.string.power_off else R.string.power_on)
 
         val shown = Talk.issues.take(4)
@@ -310,6 +311,11 @@ class MainActivity : Activity() {
         toBottom.visibility = if (pinned) View.GONE else View.VISIBLE
         toBottom.setText(if (unseen) R.string.new_lines else R.string.to_bottom)
     }
+
+    /** On: one buzz; off: two short ones (10/9 사용자: on/off was hard to tell apart). */
+    private fun buzz(off: Boolean) = getSystemService(android.os.Vibrator::class.java).vibrate(
+        if (off) android.os.VibrationEffect.createWaveform(longArrayOf(0, 40, 80, 40), -1)
+        else android.os.VibrationEffect.createOneShot(90, android.os.VibrationEffect.DEFAULT_AMPLITUDE))
 
     /**
      * Appends a paragraph whose wrapped lines indent past [prefix], [gap] px below the one before.
