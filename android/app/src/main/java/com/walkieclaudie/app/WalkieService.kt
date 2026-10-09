@@ -11,7 +11,8 @@ import android.content.SharedPreferences
 import android.content.pm.ServiceInfo
 import android.graphics.PixelFormat
 import android.media.AudioManager
-import android.media.ToneGenerator
+import android.media.AudioAttributes
+import android.media.SoundPool
 import android.media.session.MediaSession
 import android.media.session.PlaybackState
 import android.os.Bundle
@@ -74,7 +75,8 @@ class WalkieService : Service() {
     private val outbox = LinkedBlockingQueue<Talk.Line>()
 
     private lateinit var tts: TextToSpeech
-    private lateinit var tone: ToneGenerator
+    private lateinit var sounds: SoundPool // radio beeps from tools/sounds.py, on the media stream (earphones)
+    private val soundIds = HashMap<Int, Int>()
     private var recognizer: SpeechRecognizer? = null
     private lateinit var wm: WindowManager
     private lateinit var button: TextView
@@ -94,7 +96,11 @@ class WalkieService : Service() {
         prefs = getSharedPreferences(PREFS, MODE_PRIVATE)
         key = prefs.getString("key", "")!!
         unmuteChimes() // left muted if the app died mid-recording
-        tone = ToneGenerator(AudioManager.STREAM_MUSIC, 90)
+        sounds = SoundPool.Builder().setMaxStreams(2)
+            .setAudioAttributes(AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA).setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION).build())
+            .build()
+        listOf(R.raw.talk_start, R.raw.sent, R.raw.received, R.raw.reply, R.raw.reply_other, R.raw.empty, R.raw.failed)
+            .forEach { soundIds[it] = sounds.load(this, it, 1) }
         tts = openTts(this) {
             if (prefs.getBoolean(Channels.ANNOUNCE, false)) { // just switched channel
                 prefs.edit().remove(Channels.ANNOUNCE).apply()
@@ -137,7 +143,7 @@ class WalkieService : Service() {
         unmuteChimes()
         if (::button.isInitialized) wm.removeView(button)
         tts.shutdown()
-        tone.release()
+        sounds.release()
         setStatus(R.string.st_off)
         super.onDestroy()
     }
@@ -171,7 +177,7 @@ class WalkieService : Service() {
                     moved -> prefs.edit().putInt("x", lp.x).putInt("y", lp.y).apply()
                     e.eventTime - e.downTime > 600 && session != null -> { // long-press: earphone button back to the walkie
                         playSilence()
-                        tone.startTone(ToneGenerator.TONE_PROP_ACK, 200)
+                        beep(R.raw.received)
                     }
                     else -> toggleListening()
                 }
@@ -285,7 +291,7 @@ class WalkieService : Service() {
             override fun onReadyForSpeech(params: Bundle?) {
                 failures = 0
                 if (first) {
-                    tone.startTone(ToneGenerator.TONE_PROP_BEEP, 120) // the next sessions stay silent
+                    beep(R.raw.talk_start) // the next sessions stay silent
                 }
             }
             override fun onResults(results: Bundle) {
@@ -347,7 +353,7 @@ class WalkieService : Service() {
         // ponytail: diagnostic line while pause-continuation is being tuned on real phones; drop once it's stable.
         if (failed.isNotEmpty() || sessions > 1 || text.isEmpty() && errors.isNotEmpty())
             note(getString(R.string.err_speech_note, sessions, errors.joinToString(",").ifEmpty { "-" }))
-        if (text.isEmpty()) tone.startTone(ToneGenerator.TONE_PROP_NACK, 300) else send(text)
+        if (text.isEmpty()) beep(R.raw.empty) else send(text)
     }
 
     /** A line in the conversation for diagnosis (kept in the log, not sent). */
@@ -386,7 +392,7 @@ class WalkieService : Service() {
         val line = Talk.Line(UUID.randomUUID().toString(), text, Talk.State.SENDING)
         Talk.lines.add(line)
         Talk.changed()
-        tone.startTone(ToneGenerator.TONE_PROP_BEEP2, 200)
+        beep(R.raw.sent)
         sentBeepAt = android.os.SystemClock.uptimeMillis()
         outbox.put(line)
     }
@@ -425,13 +431,13 @@ class WalkieService : Service() {
                         Talk.changed()
                     }
                     // On a LAN the ack is back within ~0.1 s: keep the "received" beep apart from the "sent" one.
-                    main.postAtTime({ tone.startTone(ToneGenerator.TONE_PROP_ACK, 200) }, sentBeepAt + RECEIVED_GAP_MS)
+                    main.postAtTime({ beep(R.raw.received) }, sentBeepAt + RECEIVED_GAP_MS)
                     break
                 } catch (e: Exception) {
                     val now = System.currentTimeMillis()
                     if (firstFailure == 0L) firstFailure = now
                     // One "couldn't send" sound once it has been failing for a while; keep retrying silently.
-                    else if (now - firstFailure in 30_000..33_000) main.post { tone.startTone(ToneGenerator.TONE_PROP_NACK, 500) }
+                    else if (now - firstFailure in 30_000..33_000) main.post { beep(R.raw.failed) }
                     setStatus(R.string.st_offline, "${e.message} · ${getString(R.string.waiting, outbox.size + 1)}")
                     Thread.sleep(3_000)
                 }
@@ -491,7 +497,7 @@ class WalkieService : Service() {
     private fun onOtherReply(port: Int, id: String, text: String, replyTo: String) {
         if (prefs.getBoolean(FOLLOW, false)) {
             Channels.follow(this, port)
-            return onReply(id, text, replyTo, ToneGenerator.TONE_PROP_PROMPT)
+            return onReply(id, text, replyTo, R.raw.reply_other)
         }
         val f = Channels.talkFile(this, port)
         val j = runCatching { JSONObject(f.readText()) }.getOrElse { JSONObject().put("lines", JSONArray()).put("issues", JSONArray()) }
@@ -501,10 +507,10 @@ class WalkieService : Service() {
         val tmp = File(f.path + ".tmp")
         tmp.writeText(j.toString())
         tmp.renameTo(f)
-        speakWhenFree(id, text, ToneGenerator.TONE_PROP_PROMPT)
+        speakWhenFree(id, text, R.raw.reply_other)
     }
 
-    private fun onReply(id: String, text: String, replyTo: String, chirp: Int = ToneGenerator.TONE_SUP_RADIO_ACK) {
+    private fun onReply(id: String, text: String, replyTo: String, chirp: Int = R.raw.reply) {
         Talk.lines.find { it.id == replyTo }?.state = Talk.State.ANSWERED
         Talk.lines.add(Talk.Line(id, text, Talk.State.REPLY))
         Talk.changed()
@@ -512,12 +518,14 @@ class WalkieService : Service() {
     }
 
     /** Replies wait out a phone call, then play with the incoming-radio chirp. */
-    private fun speakWhenFree(id: String, text: String, chirp: Int = ToneGenerator.TONE_SUP_RADIO_ACK) {
+    private fun speakWhenFree(id: String, text: String, chirp: Int = R.raw.reply) {
         if (!running) return
         if (inCall()) return run { main.postDelayed({ speakWhenFree(id, text, chirp) }, 2_000) }
-        tone.startTone(chirp, 300)
+        beep(chirp)
         main.postDelayed({ tts.speak(text, TextToSpeech.QUEUE_ADD, null, id) }, 400)
     }
+
+    private fun beep(res: Int) { sounds.play(soundIds[res] ?: return, 1f, 1f, 1, 0, 1f) }
 
     private fun setStatus(status: Int, detail: String = "") = main.post {
         Talk.status = status
