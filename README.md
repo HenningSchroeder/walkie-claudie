@@ -21,7 +21,7 @@ PC에 띄워 둔 Claude Code 세션과 안드로이드 폰으로 **무전기처�
 
 ### 준비물
 - Claude Code (claude.ai 구독 로그인), [Bun](https://bun.sh)
-- 안드로이드 10 이상 폰
+- 안드로이드 10 이상 폰(독백 모드는 안드로이드 13 이상)
 - 폰과 PC가 서로 닿는 네트워크: 같은 Wi-Fi, 또는 밖에서도 쓰려면 [Tailscale](https://tailscale.com) 같은 VPN
 
 ### 설치
@@ -37,6 +37,7 @@ PC에 띄워 둔 Claude Code 세션과 안드로이드 폰으로 **무전기처�
    - Claude Code 채널은 아직 연구 미리보기라, Anthropic 허용 목록에 없는 채널은 이 개발용 플래그로만 연결됩니다. 시작할 때마다 경고 창이 뜨며, Enter를 누르면 넘어갑니다. 공식 플러그인 디렉터리 등재를 추진할 예정이고, 등재되면 `--channels plugin:walkie@...`로 바뀝니다.
    - 플러그인은 PC의 **모든** Claude Code 세션에서 켜집니다. 하지만 `WALKIE_ENABLE=1`이 없는 세션에서는 포트도 도구도 열지 않고 조용히 있습니다.
    - **여러 세션 = 채널.** `WALKIE_ENABLE=1`로 띄운 세션마다 7700, 7701, … 중 빈 포트를 하나씩 잡아 CH1, CH2, …가 됩니다. 앱 맨 위 액정(`CH1 이름 ›`)을 누르면 채널 목록이 뜨고, 고르면 그 채널로 바뀌며 채널 이름을 소리로 알려 줍니다. 채널 이름은 세션 폴더 이름이고, `WALKIE_NAME=비서`처럼 정할 수 있습니다. 이미 켜 둔 세션에는 붙일 수 없습니다(채널은 세션을 띄울 때만 연결됨).
+   - **스캔**: 기본으로 켜진 채널을 모두 듣습니다. 다른 채널의 답은 채널 이름 대신 '삑삑' 전환음 뒤에 읽고 그 채널 기록에 남깁니다. 말하기는 지금 채널로 갑니다. [설정] › 채널에서 끌 수 있고, '답 온 채널로 넘어가기'를 켜면 답이 온 채널로 바뀝니다.
 3. 앱 APK를 폰에 설치합니다([Releases](../../releases), 또는 아래 '직접 빌드').
 4. PC 세션에서 `/walkie:pair`를 입력하면 QR이 나옵니다. 앱의 **[설정] › 키 › QR**로 찍습니다.
    - QR이 깨져 보이면 터미널에서 직접 `bun <플러그인 경로>/pair.ts`를 실행하세요.
@@ -45,13 +46,15 @@ PC에 띄워 둔 Claude Code 세션과 안드로이드 폰으로 **무전기처�
 
 ### 사용
 - 말하기 버튼은 세 가지이고, [설정]에서 각각 켜고 끌 수 있습니다.
-  - **떠 있는 [말하기] 버튼**: 누르면 '삑' 소리가 나고 말하면 됩니다. 다시 누르면 보냅니다('삑삑'). 말하다 잠깐 멈춰도 끊기지 않습니다(최대 2분).
-  - **음량 버튼 길게**: 누르고 있는 동안 말하고, 떼면 보냅니다. 짧게 누르면 평소처럼 음량이 바뀝니다. 화면이 켜져 있을 때만 되며, 접근성에서 Walkie-Claudie를 켜야 합니다(회색으로 막히면 앱 정보 › ⋮ › 제한된 설정 허용).
+  - **떠 있는 [말하기] 버튼**: 누르면 무전기 '말하기 허가음'(삐삐삑)이 나고 말하면 됩니다. 다시 누르면 보냅니다(로저 삑). 말하다 잠깐 멈춰도 끊기지 않습니다(최대 2분).
+  - **음량 ▼ 길게**: 누르고 있는 동안 말하고, 떼면 보냅니다. 짧게 누르면 평소처럼 음량이 바뀝니다. 화면이 켜져 있을 때만 되며, 접근성에서 Walkie-Claudie를 켜야 합니다(회색으로 막히면 앱 정보 › ⋮ › 제한된 설정 허용).
   - **블루투스 이어폰 버튼**: 한 번(또는 두 번) 눌러 시작하고, 다시 누르면 보냅니다. 화면이 꺼져 있어도 됩니다. 음악·팟캐스트 앱이 이어폰 버튼을 가져가면 그 앱이 우선이고, 다시 무전기로 쓰려면 떠 있는 [말하기] 버튼을 길게 누릅니다.
-- PC가 받으면 '받았어요' 효과음이 납니다. 연결이 끊겨 있으면 다시 연결될 때까지 계속 재전송합니다.
-- 답이 오면 '무전 오는 소리'가 난 뒤 음성으로 읽어 줍니다.
+- **독백 모드(음량 ▲ 길게)**: 길게 말할 때 씁니다. 올라가는 세 음이 들리면 손을 떼고 말하고, 끝나면 다시 ▲를 길게 눌러(내려가는 세 음) 한 번에 보냅니다. 오래 쉬어도 끊기지 않습니다. 짧은 말을 여러 번 주고받지 않아 Claude 사용량도 아낍니다. 앱이 녹음을 직접 받아 폰의 음성 인식기에 넘기고 녹음은 폰에 남겨 둬서, 인식이 실패하면 녹음으로 다시 인식합니다. 독백 중에는 화면이 켜져 있고, 10분이 되면 자동으로 보냅니다.
+- PC가 받으면 짧은 확인음이 납니다. 연결이 끊겨 있으면 다시 연결될 때까지 계속 재전송합니다.
+- 답이 오면 짧은 호출음이 난 뒤 음성으로 읽어 줍니다. 소리는 모두 실제 무전기 신호음을 본떠 직접 합성했습니다(녹음 아님).
 - 답을 읽는 목소리는 앱의 **목소리** 화면에서 엔진·목소리·속도를 고를 수 있습니다(고르면 바로 미리 듣기).
 - 앱 화면에는 연결 상태, 남은 이슈(Claude가 관리하는 할 일 목록), 대화 기록이 나옵니다.
+- **[켜기]/[끄기]**: 버튼의 작은 불이 켜짐이면 초록, 꺼짐이면 어둡습니다. 켤 때는 진동 한 번과 올라가는 전원음, 끌 때는 짧은 진동 두 번과 내려가는 전원음이 납니다. 꺼져 있으면 대화가 흐려지고 가운데에 '꺼짐'이 뜹니다.
 - 전화가 울리거나 통화 중(인터넷 전화 포함)이면 무전기는 손을 뗍니다. 이어폰 버튼은 받기·끊기로, 음량 버튼은 통화 음량으로 갑니다. 통화 중에 온 답은 통화가 끝난 뒤 읽어 줍니다.
 
 ### Claude 사용량 표시
@@ -75,6 +78,7 @@ PC에 띄워 둔 Claude Code 세션과 안드로이드 폰으로 **무전기처�
 
 ### 직접 빌드 / 개발
 - 앱: `cd android && ./gradlew assembleDebug` (JDK 17 이상, Android SDK) → `android/app/build/outputs/apk/debug/app-debug.apk`
+- 신호음 다시 만들기: `python3 tools/sounds.py android/app/src/main/res/raw`
 - 플러그인 테스트: `cd plugin && bun install && bun test`
 - 기획 문서: [docs/PRD.md](docs/PRD.md)
 
@@ -103,7 +107,7 @@ Built by a parcel courier whose hands are always busy: even with the delivery ap
 
 ### Requirements
 - Claude Code (signed in with a claude.ai plan), [Bun](https://bun.sh)
-- Android 10+
+- Android 10+ (monologue mode: Android 13+)
 - A network where the phone can reach the PC: same Wi-Fi, or a VPN such as [Tailscale](https://tailscale.com) to use it on the go
 
 ### Setup
@@ -119,6 +123,7 @@ Built by a parcel courier whose hands are always busy: even with the delivery ap
    - Claude Code channels are a research preview: channels not on Anthropic's allowlist attach only through this development flag. A warning appears on every start; press Enter to continue. We plan to submit to the official plugin directory; once listed, this becomes `--channels plugin:walkie@...`.
    - The plugin starts in **every** Claude Code session on the PC, but stays inert (no port, no tools) unless `WALKIE_ENABLE=1` is set.
    - **Several sessions = channels.** Each session started with `WALKIE_ENABLE=1` takes the first free port of 7700, 7701, … and becomes CH1, CH2, … Tap the top LCD in the app (`CH1 name ›`) for the channel list; pick one to switch, and its name is read out. The name is the session's folder, or set it with `WALKIE_NAME=assistant`. A session that is already running can't be attached (channels connect only at session start).
+   - **Scan**: by default the app listens to every open channel. A reply from another channel is read after a double-beep switch tone (instead of its name) and kept in that channel's history; you still talk on the current channel. Turn it off under Settings › Channels, or turn on "Follow the replying channel" to switch to it.
 3. Install the app APK ([Releases](../../releases), or see "Build" below).
 4. Run `/walkie:pair` in the session to show a QR code, then scan it in the app under **Settings › Key › QR**.
    - If the QR looks broken, run `bun <plugin path>/pair.ts` yourself in a terminal.
@@ -127,13 +132,15 @@ Built by a parcel courier whose hands are always busy: even with the delivery ap
 
 ### Usage
 - Three talk triggers, each switchable in Settings:
-  - **Floating Talk button**: tap, wait for the beep, and speak. Tap again to send (double beep). Pausing mid-sentence doesn't cut you off (2 minutes max).
-  - **Hold a volume key**: talk while holding, release to send. Short presses still change the volume. Screen on only; turn on Walkie-Claudie under Accessibility (greyed out? App info › ⋮ › Allow restricted settings).
+  - **Floating Talk button**: tap, wait for the radio's talk-permit chirp, and speak. Tap again to send (roger beep). Pausing mid-sentence doesn't cut you off (2 minutes max).
+  - **Hold volume down**: talk while holding, release to send. Short presses still change the volume. Screen on only; turn on Walkie-Claudie under Accessibility (greyed out? App info › ⋮ › Allow restricted settings).
   - **Bluetooth earphone button**: press once (or double-press) to start; press again to send. Works with the screen off. Once a music or podcast app takes the earphone button it keeps it; long-press the floating Talk button to take it back.
-- A confirmation sound plays once the PC has the message. If the connection is down, the app keeps retrying until it gets through.
-- When a reply arrives you hear a radio chirp, then the reply is read aloud.
+- **Monologue mode (hold volume up)**: for talking at length. Let go at the rising three-tone, speak, then hold volume up again (falling three-tone) to send it all at once. Long pauses don't cut you off, and one long message instead of many short turns saves Claude usage. The app records the audio itself, feeds it to the phone's speech recognizer and keeps the recording on the phone, so a failed recognition is retried from it. The screen stays on during a monologue, and it sends automatically after 10 minutes.
+- A short confirmation beep plays once the PC has the message. If the connection is down, the app keeps retrying until it gets through.
+- When a reply arrives you hear a call-alert beep, then the reply is read aloud. All sounds are synthesized after real two-way radio tones (no recordings).
 - Pick the reading voice in the app's **Voice** screen: engine, voice and speed, with a sample on every change.
 - The app shows the connection state, open items (a to-do list Claude keeps up to date) and the conversation.
+- **On/Off**: the small light on the key is green when on, dark when off. Switching on gives one buzz and a rising power tone; switching off, two short buzzes and a falling tone. While off, the conversation dims under a big "Off".
 - While the phone rings or a call is on (VoIP included), the walkie keeps its hands off: the earphone button answers/hangs up and the volume keys set call volume. Replies that arrive during a call are read after it ends.
 
 ### Claude usage display
@@ -157,6 +164,7 @@ Built by a parcel courier whose hands are always busy: even with the delivery ap
 
 ### Build / develop
 - App: `cd android && ./gradlew assembleDebug` (JDK 17+, Android SDK) → `android/app/build/outputs/apk/debug/app-debug.apk`
+- Regenerate the beeps: `python3 tools/sounds.py android/app/src/main/res/raw`
 - Plugin tests: `cd plugin && bun install && bun test`
 - Product spec (Korean): [docs/PRD.md](docs/PRD.md)
 
