@@ -35,8 +35,9 @@ object Channels {
     fun number(ctx: Context) = port(ctx) - base(prefs(ctx)).second + 1
     fun url(ctx: Context) = base(prefs(ctx)).first + ":" + port(ctx)
     private fun first(ctx: Context, port: Int) = port == base(prefs(ctx)).second
-    fun talkFile(ctx: Context) = port(ctx).let { File(ctx.filesDir, if (first(ctx, it)) "talk.json" else "talk-$it.json") }
-    fun cursorKey(ctx: Context) = port(ctx).let { if (first(ctx, it)) "cursor" else "cursor-$it" }
+    fun url(ctx: Context, port: Int) = base(prefs(ctx)).first + ":" + port
+    fun talkFile(ctx: Context, port: Int = port(ctx)) = File(ctx.filesDir, if (first(ctx, port)) "talk.json" else "talk-$port.json")
+    fun cursorKey(ctx: Context, port: Int = port(ctx)) = if (first(ctx, port)) "cursor" else "cursor-$port"
 
     /** Last name the channel gave; empty for a plugin from before channels. */
     fun name(ctx: Context, port: Int = port(ctx)) = prefs(ctx).getString("name-$port", "")!!
@@ -83,6 +84,12 @@ object Channels {
         names.forEachIndexed { i, n -> if (n != null) e.putString("name-${first + i}", n) }
         e.apply()
         return names.indices.filter { names[it] != null }.map { first + it }.also { live = it }
+    }
+
+    /** A running walkie moving to [port] by itself (WalkieService.FOLLOW): no restart, it already polls every channel. Main thread. */
+    fun follow(ctx: Context, port: Int) {
+        prefs(ctx).edit().putInt(PORT, port).apply()
+        Talk.reload(talkFile(ctx))
     }
 
     /** Makes [port] the active channel: its conversation on screen; a running walkie restarts on it and says its name. */

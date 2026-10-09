@@ -62,6 +62,10 @@ class SettingsActivity : Activity() {
         switch(R.string.trig_ear_double, R.string.trig_ear_double_sub, WalkieService.EAR_DOUBLE, false)
         switch(R.string.trig_floating, if (ear) R.string.trig_floating_sub else R.string.trig_floating_sub_noear, WalkieService.FLOATING, true)
 
+        title(R.string.sec_channels)
+        switch(R.string.scan, R.string.scan_sub, WalkieService.SCAN, true)
+        if (prefs.getBoolean(WalkieService.SCAN, true)) switch(R.string.scan_follow, R.string.scan_follow_sub, WalkieService.FOLLOW, false)
+
         title(R.string.voice)
         val voice = prefs.getString(WalkieService.TTS_VOICE, "")!!
         row(if (voice.isEmpty()) getString(R.string.voice_auto_short) else prefs.getString(WalkieService.TTS_VOICE_LABEL, null) ?: getString(R.string.voice_picked),

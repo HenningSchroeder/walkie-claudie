@@ -92,4 +92,9 @@
     <string name="channel_now">current</string>
     <string name="channel_off">off</string>
     <string name="channel_checking">checking…</string>
+    <string name="sec_channels">Channels</string>
+    <string name="scan">Listen to other channels</string>
+    <string name="scan_sub">Reads replies from every open channel; other channels\' replies start with a switch tone. You still talk on the current channel</string>
+    <string name="scan_follow">Follow the replying channel</string>
+    <string name="scan_follow_sub">A reply from another channel switches to it, so your next message goes there too</string>
 </resources>

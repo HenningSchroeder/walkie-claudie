@@ -27,7 +27,9 @@ import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.WindowManager
 import android.widget.TextView
+import org.json.JSONArray
 import org.json.JSONObject
+import java.io.File
 import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
@@ -48,6 +50,8 @@ class WalkieService : Service() {
         const val PREFS = "walkie"
         // Trigger switches (all on by default except earphone double-press).
         const val FLOATING = "trig_floating"
+        const val SCAN = "scan" // listen to every open channel
+        const val FOLLOW = "scan_follow" // a reply from another channel makes it the active one
         const val VOLUME = "trig_volume"
         const val EAR_SINGLE = "trig_ear_single"
         const val EAR_DOUBLE = "trig_ear_double"
@@ -64,7 +68,7 @@ class WalkieService : Service() {
 
     private val main = Handler(Looper.getMainLooper())
     private lateinit var prefs: SharedPreferences
-    private lateinit var baseUrl: String
+    private val baseUrl get() = Channels.url(this) // the active channel can change under a running walkie (FOLLOW)
     private lateinit var key: String
     @Volatile private var running = true
     private val outbox = LinkedBlockingQueue<Talk.Line>()
@@ -88,7 +92,6 @@ class WalkieService : Service() {
         startForeground(2, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE or ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK)
 
         prefs = getSharedPreferences(PREFS, MODE_PRIVATE)
-        baseUrl = Channels.url(this)
         key = prefs.getString("key", "")!!
         unmuteChimes() // left muted if the app died mid-recording
         tone = ToneGenerator(AudioManager.STREAM_MUSIC, 90)
@@ -107,8 +110,8 @@ class WalkieService : Service() {
             .addOnModeChangedListener(mainExecutor, modeListener)
         Talk.lines.filter { it.state == Talk.State.SENDING }.forEach(outbox::put) // unsent from last time
         thread(isDaemon = true, name = "walkie-send") { sendLoop() }
-        thread(isDaemon = true, name = "walkie-poll") { pollLoop() }
-        thread(isDaemon = true, name = "walkie-scan") { Channels.scan(this); main.post { Talk.refresh() } } // names for the header
+        thread(isDaemon = true, name = "walkie-poll") { pollLoop(Channels.port(this)) }
+        thread(isDaemon = true, name = "walkie-scan") { scanLoop(prefs.getBoolean(SCAN, true)) }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -390,8 +393,8 @@ class WalkieService : Service() {
 
     // --- network ---
 
-    private fun http(method: String, path: String, body: String? = null, readTimeoutMs: Int = 10_000): String {
-        val c = URL(baseUrl + path).openConnection() as HttpURLConnection
+    private fun http(method: String, path: String, body: String? = null, readTimeoutMs: Int = 10_000, base: String = baseUrl): String {
+        val c = URL(base + path).openConnection() as HttpURLConnection
         try {
             c.requestMethod = method
             c.connectTimeout = 5_000
@@ -436,51 +439,83 @@ class WalkieService : Service() {
         }
     }
 
-    private fun pollLoop() {
-        val cursorKey = Channels.cursorKey(this)
+    /** Scan (10/9 사용자): every open channel is listened to; other channels' replies play after a switch tone, and talking stays on the active channel. */
+    private fun scanLoop(listenAll: Boolean) {
+        val polling = mutableSetOf(Channels.port(this))
+        while (running) {
+            Channels.scan(this).filter { listenAll && polling.add(it) }.forEach { thread(isDaemon = true, name = "walkie-poll-$it") { pollLoop(it) } }
+            main.post { Talk.refresh() } // names for the header
+            Thread.sleep(60_000) // ponytail: sessions opened later are heard within a minute
+        }
+    }
+
+    private fun pollLoop(port: Int) {
+        val base = Channels.url(this, port)
+        val cursorKey = Channels.cursorKey(this, port)
         var cursor = prefs.getLong(cursorKey, 0)
         // A channel never listened to may hold a long history: only its last 10 minutes are new to us.
         val since = if (prefs.contains(cursorKey)) 0L else System.currentTimeMillis() - 10 * 60_000
         var wait = "&wait=0" // first poll after (re)connecting answers at once
         while (running) {
+            val active = port == Channels.port(this)
             try {
-                val res = JSONObject(http("GET", "/poll?after=$cursor$wait", readTimeoutMs = 40_000))
+                val res = JSONObject(http("GET", "/poll?after=$cursor$wait", readTimeoutMs = 40_000, base = base))
                 wait = ""
-                setStatus(R.string.st_connected)
                 val replies = res.getJSONArray("replies")
-                val issues = res.getJSONArray("issues").let { a -> List(a.length()) { a.getString(it) } }
                 for (i in 0 until replies.length()) {
                     val r = replies.getJSONObject(i)
                     cursor = maxOf(cursor, r.getLong("seq"))
                     if (runCatching { java.time.Instant.parse(r.getString("ts")).toEpochMilli() }.getOrDefault(Long.MAX_VALUE) < since) continue
-                    main.post { onReply(r.getLong("seq").toString(), r.getString("text"), r.optString("reply_to")) }
+                    val id = r.getLong("seq").toString()
+                    if (active) main.post { onReply(id, r.getString("text"), r.optString("reply_to")) }
+                    else main.post { onOtherReply(port, id, r.getString("text"), r.optString("reply_to")) }
                 }
                 prefs.edit().putLong(cursorKey, cursor).apply()
+                if (!active) continue
+                setStatus(R.string.st_connected)
+                val issues = res.getJSONArray("issues").let { a -> List(a.length()) { a.getString(it) } }
                 val usage = res.optJSONObject("usage")
                 fun pct(k: String) = usage?.optJSONObject(k)?.optDouble("used_percentage")?.takeIf { !it.isNaN() }?.toInt() ?: -1
                 val u5 = pct("five_hour"); val u7 = pct("seven_day")
                 main.post { Talk.issues = issues; Talk.usage5h = u5; Talk.usage7d = u7; Talk.changed() }
             } catch (e: Exception) {
                 if (!running) return
-                setStatus(R.string.st_offline, e.message ?: "")
+                if (active) setStatus(R.string.st_offline, e.message ?: "")
                 wait = "&wait=0"
-                Thread.sleep(3_000)
+                Thread.sleep(if (active) 3_000 else 15_000)
             }
         }
     }
 
-    private fun onReply(id: String, text: String, replyTo: String) {
+    /** Another channel's reply: kept in that channel's conversation, spoken after the switch tone. */
+    private fun onOtherReply(port: Int, id: String, text: String, replyTo: String) {
+        if (prefs.getBoolean(FOLLOW, false)) {
+            Channels.follow(this, port)
+            return onReply(id, text, replyTo, ToneGenerator.TONE_PROP_PROMPT)
+        }
+        val f = Channels.talkFile(this, port)
+        val j = runCatching { JSONObject(f.readText()) }.getOrElse { JSONObject().put("lines", JSONArray()).put("issues", JSONArray()) }
+        val a = j.getJSONArray("lines")
+        for (i in 0 until a.length()) a.getJSONObject(i).let { if (it.getString("id") == replyTo) it.put("state", Talk.State.ANSWERED.name) }
+        a.put(JSONObject().put("id", id).put("text", text).put("state", Talk.State.REPLY.name))
+        val tmp = File(f.path + ".tmp")
+        tmp.writeText(j.toString())
+        tmp.renameTo(f)
+        speakWhenFree(id, text, ToneGenerator.TONE_PROP_PROMPT)
+    }
+
+    private fun onReply(id: String, text: String, replyTo: String, chirp: Int = ToneGenerator.TONE_SUP_RADIO_ACK) {
         Talk.lines.find { it.id == replyTo }?.state = Talk.State.ANSWERED
         Talk.lines.add(Talk.Line(id, text, Talk.State.REPLY))
         Talk.changed()
-        speakWhenFree(id, text)
+        speakWhenFree(id, text, chirp)
     }
 
     /** Replies wait out a phone call, then play with the incoming-radio chirp. */
-    private fun speakWhenFree(id: String, text: String) {
+    private fun speakWhenFree(id: String, text: String, chirp: Int = ToneGenerator.TONE_SUP_RADIO_ACK) {
         if (!running) return
-        if (inCall()) return run { main.postDelayed({ speakWhenFree(id, text) }, 2_000) }
-        tone.startTone(ToneGenerator.TONE_SUP_RADIO_ACK, 300)
+        if (inCall()) return run { main.postDelayed({ speakWhenFree(id, text, chirp) }, 2_000) }
+        tone.startTone(chirp, 300)
         main.postDelayed({ tts.speak(text, TextToSpeech.QUEUE_ADD, null, id) }, 400)
     }
 
