@@ -8,7 +8,7 @@ import android.view.KeyEvent
 import android.view.accessibility.AccessibilityEvent
 
 /**
- * Volume long-press = push-to-talk while the walkie is on (screen on only; Android gives
+ * Volume-down long-press = push-to-talk, volume-up long-press = monologue on/off, while the walkie is on (screen on only; Android gives
  * accessibility no keys with the screen off). Volume keys are held back until we know:
  * released within [LONG_MS] → we apply the volume step ourselves; held longer → talk until release.
  * Also feeds the button-test log.
@@ -16,7 +16,12 @@ import android.view.accessibility.AccessibilityEvent
 class KeyAccessibilityService : AccessibilityService() {
     private val main = Handler(Looper.getMainLooper())
     private var holding = false
-    private val startHold = Runnable { holding = true; WalkieService.instance?.holdStart() }
+    private var upKey = false
+    // Volume up held: monologue on/off (the beep says "let go"); volume down held: push-to-talk.
+    private val startHold = Runnable {
+        holding = true
+        if (upKey) WalkieService.instance?.monologue() else WalkieService.instance?.holdStart()
+    }
 
     override fun onServiceConnected() = KeyLog.add("a11y", "service connected")
 
@@ -28,10 +33,10 @@ class KeyAccessibilityService : AccessibilityService() {
         if (!enabled || WalkieService.instance == null || inCall()) return false // in a call: normal call volume
         // ponytail: one volume key at a time; pressing both at once is treated as two separate presses.
         when (event.action) {
-            KeyEvent.ACTION_DOWN -> if (event.repeatCount == 0) { holding = false; main.postDelayed(startHold, LONG_MS) }
+            KeyEvent.ACTION_DOWN -> if (event.repeatCount == 0) { holding = false; upKey = up; main.postDelayed(startHold, LONG_MS) }
             KeyEvent.ACTION_UP -> {
                 main.removeCallbacks(startHold)
-                if (holding) WalkieService.instance?.holdEnd()
+                if (holding) { if (!upKey) WalkieService.instance?.holdEnd() }
                 else getSystemService(AudioManager::class.java).adjustSuggestedStreamVolume(
                     if (up) AudioManager.ADJUST_RAISE else AudioManager.ADJUST_LOWER,
                     AudioManager.USE_DEFAULT_STREAM_TYPE, AudioManager.FLAG_SHOW_UI,

@@ -51,6 +51,7 @@ class WalkieService : Service() {
         const val PREFS = "walkie"
         // Trigger switches (all on by default except earphone double-press).
         const val FLOATING = "trig_floating"
+        const val MONOLOGUE_MS = 10 * 60_000L // auto-sends after this
         const val SCAN = "scan" // listen to every open channel
         const val FOLLOW = "scan_follow" // a reply from another channel makes it the active one
         const val VOLUME = "trig_volume"
@@ -99,7 +100,7 @@ class WalkieService : Service() {
         sounds = SoundPool.Builder().setMaxStreams(2)
             .setAudioAttributes(AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA).setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION).build())
             .build()
-        listOf(R.raw.talk_start, R.raw.sent, R.raw.received, R.raw.reply, R.raw.reply_other, R.raw.empty, R.raw.failed)
+        listOf(R.raw.talk_start, R.raw.sent, R.raw.received, R.raw.reply, R.raw.reply_other, R.raw.empty, R.raw.failed, R.raw.mono_start, R.raw.mono_end)
             .forEach { soundIds[it] = sounds.load(this, it, 1) }
         tts = openTts(this) {
             if (prefs.getBoolean(Channels.ANNOUNCE, false)) { // just switched channel
@@ -142,6 +143,8 @@ class WalkieService : Service() {
         recognizer?.destroy()
         unmuteChimes()
         if (::button.isInitialized) wm.removeView(button)
+        mono?.stop()
+        if (screenOn.isHeld) screenOn.release()
         tts.shutdown()
         sounds.release()
         setStatus(R.string.st_off)
@@ -266,6 +269,7 @@ class WalkieService : Service() {
     }
 
     private fun toggleListening() {
+        if (mono != null) return monologue() // any talk button ends a monologue
         if (recognizer != null || Talk.listening) return finishListening()
         if (inCall()) return // the call owns the mic and the buttons
         tts.stop() // talking over a reply interrupts it
@@ -370,12 +374,47 @@ class WalkieService : Service() {
 
     /** Volume key held past the long-press threshold: start talking; [holdEnd] on release sends. */
     fun holdStart() {
+        if (mono != null) return
         if (!Talk.listening) toggleListening()
         Talk.hold = true
         Talk.refresh()
     }
 
     fun holdEnd() = finishListening()
+
+    // --- monologue: volume-up hold starts and ends one long recording (Monologue.kt) ---
+
+    private var mono: Monologue? = null
+    @Suppress("DEPRECATION") // the only wake lock that keeps the screen on, which the volume keys need
+    private val screenOn by lazy {
+        getSystemService(android.os.PowerManager::class.java)
+            .newWakeLock(android.os.PowerManager.SCREEN_DIM_WAKE_LOCK, "walkie:monologue")
+    }
+    private val maxMonologue = Runnable { mono?.let { monologue() } }
+
+    fun monologue() {
+        mono?.let {
+            main.removeCallbacks(maxMonologue)
+            beep(R.raw.mono_end)
+            it.stop()
+            return
+        }
+        if (android.os.Build.VERSION.SDK_INT < 33 || Talk.listening || inCall()) return beep(R.raw.empty)
+        tts.stop()
+        muteChimes()
+        beep(R.raw.mono_start)
+        setListening(true)
+        screenOn.acquire(MONOLOGUE_MS + 60_000)
+        main.postDelayed(maxMonologue, MONOLOGUE_MS)
+        mono = Monologue(this, { Talk.partial = it; Talk.refresh() }) { text, diagnostic ->
+            mono = null
+            if (screenOn.isHeld) screenOn.release()
+            main.postDelayed(unmuteLater, 1_000)
+            setListening(false)
+            note(diagnostic) // ponytail: while the pipe-fed recognizer is being tried on real phones; drop once it's proven
+            if (text.isEmpty()) beep(R.raw.empty) else send(text)
+        }.also { it.start() }
+    }
 
     private fun endListening() {
         main.removeCallbacks(maxRecording)

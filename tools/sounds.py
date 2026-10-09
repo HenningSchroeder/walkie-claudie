@@ -37,6 +37,9 @@ SOUNDS = {
     "reply": tone(1050, 110, 0.45),
     # a reply from another channel: channel-change double beep, then the voice
     "reply_other": mix(tone(1320, 50), gap(50), tone(1320, 50)),
+    # monologue on / off (volume up held): rising / falling three-tone, like a radio's mode-change prompt
+    "mono_start": mix(tone(880, 60), tone(1320, 60), tone(1760, 90)),
+    "mono_end": mix(tone(1760, 60), tone(1320, 60), tone(880, 90)),
     # nothing heard / cancelled: talk prohibit, one low steady tone
     "empty": tone(440, 300),
     # couldn't send for a while: out-of-range bonk-bonk

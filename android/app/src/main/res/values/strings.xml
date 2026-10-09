@@ -68,7 +68,7 @@
     <string name="open">Open</string>
     <string name="clipboard_empty">Nothing copied</string>
     <string name="voice_auto_short">Automatic</string>
-    <string name="trig_volume_sub">Only while the screen is on</string>
+    <string name="trig_volume_sub">Down: talk while held. Up: monologue on/off. Screen on only</string>
     <string name="trig_ear_single_sub">Playing music hands it to the music app. Long-press the floating button to take it back</string>
     <string name="trig_floating_sub">Tap to talk, long-press to take the earphone button back</string>
     <string name="new_lines">▼ New</string>
@@ -97,4 +97,5 @@
     <string name="scan_sub">Reads replies from every open channel; other channels\' replies start with a switch tone. You still talk on the current channel</string>
     <string name="scan_follow">Follow the replying channel</string>
     <string name="scan_follow_sub">A reply from another channel switches to it, so your next message goes there too</string>
+    <string name="mono_note">monologue: %1$d s, fed to recognizer %2$d%%, segments %3$d, restarts %4$d, errors %5$s, file retry %6$s</string>
 </resources>
