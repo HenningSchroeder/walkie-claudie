@@ -202,10 +202,18 @@ class CursorSpan(ctx: Context) : ReplacementSpan() {
 
 /** Extra space above a paragraph's first line (its other lines keep normal spacing); none at the very top. */
 class GapAbove(private val px: Int) : android.text.style.LineHeightSpan {
+    private var ascent = 0
+    private var top = 0
+
     override fun chooseHeight(t: CharSequence, start: Int, end: Int, v: Int, h: Int, fm: Paint.FontMetricsInt) {
-        if (start == 0 || start != (t as android.text.Spanned).getSpanStart(this)) return
-        fm.ascent -= px
-        fm.top -= px
+        if (start == 0) return
+        if (start == (t as android.text.Spanned).getSpanStart(this)) {
+            ascent = fm.ascent; top = fm.top
+            fm.ascent -= px
+            fm.top -= px
+        } else if (fm.ascent == ascent - px) { // StaticLayout hands the same metrics to the next lines: undo the gap there
+            fm.ascent = ascent; fm.top = top
+        }
     }
 }
 
