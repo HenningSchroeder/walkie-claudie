@@ -133,8 +133,10 @@ class WalkieService : Service() {
     private val modeListener by lazy {
         AudioManager.OnModeChangedListener {
             // An active session keeps the earphone button even when its callback declines it, so a call's
-            // answer/hang-up never reached the phone app (10/9 사용자): step aside for the whole call.
-            session?.isActive = !inCall()
+            // answer/hang-up never reached the phone app (10/9 사용자, also while a reply was being read):
+            // step aside for the whole call.
+            KeyLog.add("walkie", "audio mode ${audio.mode}") // 1 ringing, 2 call, 3 VoIP; 0 normal
+            session?.let { playing(it, !inCall()); it.isActive = !inCall() }
             if (inCall()) { tts.stop(); recognizer?.cancel(); endListening(); mono?.let { monologue() } }
         }
     }
@@ -219,24 +221,31 @@ class WalkieService : Service() {
                 override fun onMediaButtonEvent(intent: Intent): Boolean {
                     @Suppress("DEPRECATION")
                     val e = intent.getParcelableExtra<KeyEvent>(Intent.EXTRA_KEY_EVENT) ?: return false
+                    KeyLog.key("walkie", e) // shows in the button test log: which presses still reach us during a call
                     if (e.keyCode !in keys || inCall()) return false // calls keep answer/hang-up
                     if (e.action == KeyEvent.ACTION_DOWN && e.repeatCount == 0) toggleListening()
                     return true
                 }
             })
-            setPlaybackState(
-                PlaybackState.Builder()
-                    .setActions(PlaybackState.ACTION_PLAY_PAUSE or PlaybackState.ACTION_PLAY or PlaybackState.ACTION_PAUSE or
-                        PlaybackState.ACTION_SKIP_TO_NEXT)
-                    .setState(PlaybackState.STATE_PLAYING, 0, 1f)
-                    .build()
-            )
+            playing(this, true)
             isActive = true
         }
         // Taken once at start. A music/podcast app that plays afterwards keeps the earphone button
         // (even paused; user's call 10/8) until the user takes it back: long-press the floating button.
         playSilence()
     }
+
+    /**
+     * "Playing" is what earns the earphone button, but Bluetooth earbuds see it too (AVRCP) and may send their
+     * button as play/pause instead of answer/hang-up while it says playing — so a call sets it paused.
+     */
+    private fun playing(s: MediaSession, on: Boolean) = s.setPlaybackState(
+        PlaybackState.Builder()
+            .setActions(PlaybackState.ACTION_PLAY_PAUSE or PlaybackState.ACTION_PLAY or PlaybackState.ACTION_PAUSE or
+                PlaybackState.ACTION_SKIP_TO_NEXT)
+            .setState(if (on) PlaybackState.STATE_PLAYING else PlaybackState.STATE_PAUSED, 0, 1f)
+            .build()
+    )
 
     // --- speech in ---
 
