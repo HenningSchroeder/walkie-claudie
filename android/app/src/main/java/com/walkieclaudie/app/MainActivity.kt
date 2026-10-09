@@ -42,6 +42,7 @@ class MainActivity : Activity() {
     private lateinit var recHint: TextView
     private lateinit var heard: TextView
     private lateinit var power: TextView
+    private lateinit var offMark: TextView
     private lateinit var chList: View
     private lateinit var chMenu: LinearLayout
     private lateinit var back: TextView
@@ -121,8 +122,11 @@ class MainActivity : Activity() {
             visibility = View.GONE
             setOnClickListener { log.smoothScrollTo(0, talk.height) }
         }
+        // Walkie off: the conversation dims under a big "Off" (10/9 사용자: on/off was hard to tell apart).
+        offMark = lcdText(Ui.L).apply { setText(R.string.st_off); letterSpacing = 0.04f }
         logBox = body.lcd(android.widget.FrameLayout(this).apply {
             addView(log)
+            addView(offMark, android.widget.FrameLayout.LayoutParams(-2, -2, Gravity.CENTER))
             addView(toBottom, android.widget.FrameLayout.LayoutParams(-2, -2, Gravity.BOTTOM or Gravity.END))
         }, weight = 1f)
         // Stay pinned to the newest line while the reader is at the bottom, even when the text grows
@@ -270,6 +274,9 @@ class MainActivity : Activity() {
             if (Talk.session > 1) " · " + getString(R.string.continued, Talk.session - 1) else ""
         heard.text = if (Talk.partial.isEmpty()) "" else "\"${Talk.partial}\""
         (power.background as KeyDrawable).led = if (running) Ui.LED_OK else Ui.LED_DARK
+        offMark.visibility = if (running) View.GONE else View.VISIBLE
+        log.alpha = if (running) 1f else 0.3f
+        todoList.alpha = log.alpha
         power.setText(if (Talk.listening) R.string.cancel else if (running) R.string.power_off else R.string.power_on)
 
         val shown = Talk.issues.take(4)
@@ -312,10 +319,14 @@ class MainActivity : Activity() {
         toBottom.setText(if (unseen) R.string.new_lines else R.string.to_bottom)
     }
 
-    /** On: one buzz; off: two short ones (10/9 사용자: on/off was hard to tell apart). */
-    private fun buzz(off: Boolean) = getSystemService(android.os.Vibrator::class.java).vibrate(
-        if (off) android.os.VibrationEffect.createWaveform(longArrayOf(0, 40, 80, 40), -1)
-        else android.os.VibrationEffect.createOneShot(90, android.os.VibrationEffect.DEFAULT_AMPLITUDE))
+    /** On: one buzz and the power-on chirp; off: two short buzzes and the power-off tone (10/9 사용자: on/off was hard to tell apart). */
+    private fun buzz(off: Boolean) {
+        getSystemService(android.os.Vibrator::class.java).vibrate(
+            if (off) android.os.VibrationEffect.createWaveform(longArrayOf(0, 40, 80, 40), -1)
+            else android.os.VibrationEffect.createOneShot(90, android.os.VibrationEffect.DEFAULT_AMPLITUDE))
+        android.media.MediaPlayer.create(this, if (off) R.raw.power_off else R.raw.power_on)
+            ?.apply { setOnCompletionListener { it.release() }; start() }
+    }
 
     /**
      * Appends a paragraph whose wrapped lines indent past [prefix], [gap] px below the one before.

@@ -40,6 +40,9 @@ SOUNDS = {
     # monologue on / off (volume up held): rising / falling three-tone, like a radio's mode-change prompt
     "mono_start": mix(tone(880, 60), tone(1320, 60), tone(1760, 90)),
     "mono_end": mix(tone(1760, 60), tone(1320, 60), tone(880, 90)),
+    # walkie switched on / off: a long rising chirp / a falling sweep, like a radio powering up / down
+    "power_on": mix(tone(700, 70), gap(30), tone(1400, 160, f2=1700)),
+    "power_off": tone(1300, 280, f2=500),
     # nothing heard / cancelled: talk prohibit, one low steady tone
     "empty": tone(440, 300),
     # couldn't send for a while: out-of-range bonk-bonk
