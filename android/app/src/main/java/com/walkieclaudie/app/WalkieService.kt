@@ -131,7 +131,12 @@ class WalkieService : Service() {
 
     // lazy: the listener type only exists on API 31+, so build it only behind the version checks.
     private val modeListener by lazy {
-        AudioManager.OnModeChangedListener { if (inCall()) { tts.stop(); recognizer?.cancel(); endListening() } }
+        AudioManager.OnModeChangedListener {
+            // An active session keeps the earphone button even when its callback declines it, so a call's
+            // answer/hang-up never reached the phone app (10/9 사용자): step aside for the whole call.
+            session?.isActive = !inCall()
+            if (inCall()) { tts.stop(); recognizer?.cancel(); endListening(); mono?.let { monologue() } }
+        }
     }
 
     override fun onDestroy() {
