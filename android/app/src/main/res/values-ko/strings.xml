@@ -96,5 +96,4 @@
     <string name="scan_sub">켜진 채널의 답을 모두 읽습니다. 다른 채널 답 앞에는 전환음이 납니다. 말하기는 지금 채널로 갑니다</string>
     <string name="scan_follow">답 온 채널로 넘어가기</string>
     <string name="scan_follow_sub">다른 채널에서 답이 오면 그 채널로 바뀌어, 다음 말하기도 그 채널로 갑니다</string>
-    <string name="mono_note">독백: %1$d초, 인식기에 넘김 %2$d%%, 조각 %3$d, 재시작 %4$d, 오류 %5$s, 파일 재인식 %6$s</string>
 </resources>

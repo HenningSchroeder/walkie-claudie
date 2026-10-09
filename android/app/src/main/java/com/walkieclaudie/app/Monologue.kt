@@ -10,7 +10,6 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.os.ParcelFileDescriptor
-import android.os.SystemClock
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
@@ -24,30 +23,24 @@ import kotlin.concurrent.thread
  * Monologue (10/9 사용자): one long recording that ignores pauses. We own the mic and feed the recognizer
  * through a pipe in one segmented session (API 33 EXTRA_AUDIO_SOURCE), which only ends when we close the pipe,
  * so there's no session-per-pause restarting. The audio is also kept in [file]: if recognition fails it is
- * fed again from there. A recognizer that ignores the pipe opens the mic itself; [fed] stalls then (the pipe
- * fills within ~2 s), and the diagnostic line shows it. Callbacks on the main thread.
+ * fed again from there. test phone (10/9): fed in full, no restarts across 5 s pauses. Callbacks on the main thread.
  */
 @RequiresApi(33)
 class Monologue(
     private val ctx: Context,
     private val onPartial: (String) -> Unit,
-    private val onDone: (text: String, diagnostic: String) -> Unit,
+    private val onDone: (text: String) -> Unit,
 ) {
     private val main = Handler(Looper.getMainLooper())
     private val file = File(ctx.cacheDir, "monologue.pcm") // ponytail: only the latest one is kept
     @Volatile private var recording = true
-    @Volatile private var recorded = 0L // bytes
-    @Volatile private var fed = 0L
     private val chunks = LinkedBlockingQueue<ByteArray>()
     private var recognizer: SpeechRecognizer? = null
     private var heard = ""
-    private var segments = 0
-    private val errors = ArrayList<Int>()
     private var retried = false
     private var restarts = 0
     private var restarting = false
     private val live = { chunks.take().takeIf { it !== END } }
-    private val startedAt = SystemClock.elapsedRealtime()
     private var done = false
 
     @SuppressLint("MissingPermission") // the walkie only runs with the mic granted
@@ -63,7 +56,6 @@ class Monologue(
                     val n = rec.read(buf, 0, buf.size)
                     if (n <= 0) continue
                     out.write(buf, 0, n)
-                    recorded += n
                     chunks.put(buf.copyOf(n))
                 }
             }
@@ -90,7 +82,6 @@ class Monologue(
                     while (true) {
                         val c = next() ?: break
                         out.write(c)
-                        fed += c.size
                     }
                 }
             } catch (_: Exception) { // the recognizer went away; the recording carries on (file + queue for the next session)
@@ -106,10 +97,7 @@ class Monologue(
                 val t = partialResults?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull() ?: return
                 onPartial("$heard $t".trim())
             }
-            override fun onError(error: Int) {
-                errors.add(error)
-                finish(r, read)
-            }
+            override fun onError(error: Int) = finish(r, read)
             override fun onReadyForSpeech(params: Bundle?) {}
             override fun onBeginningOfSpeech() {}
             override fun onRmsChanged(rmsdB: Float) {}
@@ -130,8 +118,7 @@ class Monologue(
     private fun add(b: Bundle) {
         val t = b.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull()
         if (t.isNullOrBlank()) return
-        segments++
-        heard = "$heard $t".trim()
+        heard = "$heard $t".replace(Regex("\\s+"), " ").trim() // segments may carry their own spaces
         onPartial(heard)
     }
 
@@ -163,9 +150,7 @@ class Monologue(
     private fun end() {
         if (done) return
         done = true
-        val secs = (SystemClock.elapsedRealtime() - startedAt) / 1000
-        val pct = if (recorded == 0L) 0 else (100 * minOf(fed, recorded) / recorded)
-        onDone(heard, ctx.getString(R.string.mono_note, secs, pct, segments, restarts, errors.joinToString(",").ifEmpty { "-" }, if (retried) "Y" else "-"))
+        onDone(heard)
     }
 
     companion object {

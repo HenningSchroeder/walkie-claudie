@@ -411,12 +411,11 @@ class WalkieService : Service() {
         setListening(true)
         screenOn.acquire(MONOLOGUE_MS + 60_000)
         main.postDelayed(maxMonologue, MONOLOGUE_MS)
-        mono = Monologue(this, { Talk.partial = it; Talk.refresh() }) { text, diagnostic ->
+        mono = Monologue(this, { Talk.partial = it; Talk.refresh() }) { text ->
             mono = null
             if (screenOn.isHeld) screenOn.release()
             main.postDelayed(unmuteLater, 1_000)
             setListening(false)
-            note(diagnostic) // ponytail: while the pipe-fed recognizer is being tried on real phones; drop once it's proven
             if (text.isEmpty()) beep(R.raw.empty) else send(text)
         }.also { it.start() }
     }
