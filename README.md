@@ -21,6 +21,7 @@ PC에 띄워 둔 Claude Code 세션과 안드로이드 폰으로 **무전기처�
 
 ### 준비물
 - Claude Code (claude.ai 구독 로그인), [Bun](https://bun.sh)
+- PC는 리눅스에서만 확인했습니다. macOS·윈도도 될 것으로 보지만 아직 미검증입니다.
 - 안드로이드 10 이상 폰(독백 모드는 안드로이드 13 이상)
 - 폰과 PC가 서로 닿는 네트워크: 같은 Wi-Fi, 또는 밖에서도 쓰려면 [Tailscale](https://tailscale.com) 같은 VPN
 
@@ -33,6 +34,10 @@ PC에 띄워 둔 Claude Code 세션과 안드로이드 폰으로 **무전기처�
 2. 무전기를 받을 세션을 `WALKIE_ENABLE=1`로 실행합니다.
    ```sh
    WALKIE_ENABLE=1 claude --dangerously-load-development-channels plugin:walkie@walkie-claudie
+   ```
+   윈도 PowerShell:
+   ```powershell
+   $env:WALKIE_ENABLE=1; claude --dangerously-load-development-channels plugin:walkie@walkie-claudie
    ```
    - Claude Code 채널은 아직 연구 미리보기라, Anthropic 허용 목록에 없는 채널은 이 개발용 플래그로만 연결됩니다. 시작할 때마다 경고 창이 뜨며, Enter를 누르면 넘어갑니다. 공식 플러그인 디렉터리 등재를 추진할 예정이고, 등재되면 `--channels plugin:walkie@...`로 바뀝니다.
    - 플러그인은 PC의 **모든** Claude Code 세션에서 켜집니다. 하지만 `WALKIE_ENABLE=1`이 없는 세션에서는 포트도 도구도 열지 않고 조용히 있습니다.
@@ -107,6 +112,7 @@ Built by a parcel courier whose hands are always busy: even with the delivery ap
 
 ### Requirements
 - Claude Code (signed in with a claude.ai plan), [Bun](https://bun.sh)
+- Tested on a Linux PC only. macOS and Windows should work but are untested.
 - Android 10+ (monologue mode: Android 13+)
 - A network where the phone can reach the PC: same Wi-Fi, or a VPN such as [Tailscale](https://tailscale.com) to use it on the go
 
@@ -119,6 +125,10 @@ Built by a parcel courier whose hands are always busy: even with the delivery ap
 2. Start the session(s) that should take the walkie with `WALKIE_ENABLE=1`:
    ```sh
    WALKIE_ENABLE=1 claude --dangerously-load-development-channels plugin:walkie@walkie-claudie
+   ```
+   Windows PowerShell:
+   ```powershell
+   $env:WALKIE_ENABLE=1; claude --dangerously-load-development-channels plugin:walkie@walkie-claudie
    ```
    - Claude Code channels are a research preview: channels not on Anthropic's allowlist attach only through this development flag. A warning appears on every start; press Enter to continue. We plan to submit to the official plugin directory; once listed, this becomes `--channels plugin:walkie@...`.
    - The plugin starts in **every** Claude Code session on the PC, but stays inert (no port, no tools) unless `WALKIE_ENABLE=1` is set.

@@ -112,6 +112,9 @@ export function parseUsage(line: string): Usage | null | undefined {
  * --restricted so user hooks don't run, --no-session-persistence so `claude --continue`
  * never picks it up, and a bare env.
  */
+const pickEnv = (...names: string[]) =>
+  Object.fromEntries(names.flatMap(n => process.env[n] ? [[n, process.env[n]!]] : []))
+
 async function refreshUsage(): Promise<void> {
   usageAt = Date.now()
   let result: Usage | null = null
@@ -123,7 +126,9 @@ async function refreshUsage(): Promise<void> {
         cwd: tmpdir(),
         env: {
           HOME: homedir(), PATH: process.env.PATH ?? '', LANG: 'C.UTF-8',
-          ...(process.env.CLAUDE_CONFIG_DIR ? { CLAUDE_CONFIG_DIR: process.env.CLAUDE_CONFIG_DIR } : {}),
+          ...pickEnv('CLAUDE_CONFIG_DIR',
+            // Windows can't find the profile, temp dir or Git Bash without these (untested on Windows)
+            'USERPROFILE', 'APPDATA', 'LOCALAPPDATA', 'SystemRoot', 'PATHEXT', 'TEMP', 'TMP', 'CLAUDE_CODE_GIT_BASH_PATH'),
         },
         stdin: 'pipe', stdout: 'pipe', stderr: 'ignore',
       },
