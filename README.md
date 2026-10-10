@@ -26,6 +26,8 @@ PC에 띄워 둔 Claude Code 세션과 안드로이드 폰으로 **무전기처�
 - 폰과 PC가 서로 닿는 네트워크: 같은 Wi-Fi, 또는 밖에서도 쓰려면 [Tailscale](https://tailscale.com) 같은 VPN
 
 ### 설치
+> Claude Code에게 이 저장소 주소를 주고 "깔아줘"라고 해도 됩니다. 단, 아래 2단계(세션 새로 띄우기)와 폰 쪽(3~5단계)은 직접 해야 합니다.
+
 1. PC에 플러그인을 설치합니다.
    ```sh
    claude plugin marketplace add <이 저장소 주소 또는 경로>
@@ -117,6 +119,8 @@ Built by a parcel courier whose hands are always busy: even with the delivery ap
 - A network where the phone can reach the PC: same Wi-Fi, or a VPN such as [Tailscale](https://tailscale.com) to use it on the go
 
 ### Setup
+> You can also give Claude Code this repo's URL and ask it to install it. You still do step 2 (starting a new session) and the phone side (steps 3–5) yourself.
+
 1. Install the plugin on the PC:
    ```sh
    claude plugin marketplace add <this repo URL or path>
