@@ -118,7 +118,7 @@
 5. 끄기: [끄기] → 진동 2번 + 내려가는 전원음
 
 #### 부가 기능
-- 독백 모드(길게 말할 때): 음량 ▲ 길게 → 올라가는 세 음 → 손 떼고 말하기 → 다시 ▲ 길게 누르면 전송. 오래 쉬어도 안 끊김(최대 10분)
+- 독백 모드(길게 말할 때): 음량 ▲ 길게 → 올라가는 세 음 → 손 떼고 말하기 → 다시 ▲ 길게 누르면 전송. 오래 쉬어도 안 끊김(최대 10분). 화면이 켜져 있을 때만 시작 가능(시작하면 화면이 계속 켜져 있음)
 - 채널(세션 여러 개): `WALKIE_ENABLE=1` 세션마다 빈 포트(7700, 7701, …)를 잡아 CH1, CH2, …로 표시
   - 위 액정을 누르면 채널 목록 → 고르면 전환 + 채널 이름 읽어 줌
   - 이름은 세션 폴더 이름, `WALKIE_NAME=비서`로 변경 가능
@@ -259,7 +259,7 @@ Configuration (environment variables):
 5. Turn off: tap Off → two buzzes + falling power tone
 
 #### Extras
-- Monologue mode (talking at length): hold volume up → three rising tones → let go and talk → hold volume up again to send. Long pauses are fine (10 minutes max)
+- Monologue mode (talking at length): hold volume up → three rising tones → let go and talk → hold volume up again to send. Long pauses are fine (10 minutes max). Starts only with the screen on (it then keeps the screen on)
 - Channels (several sessions): each `WALKIE_ENABLE=1` session takes a free port (7700, 7701, …) as CH1, CH2, …
   - Tap the top LCD for the channel list → pick one to switch; its name is read out
   - The name is the session folder; change it with `WALKIE_NAME=assistant`
