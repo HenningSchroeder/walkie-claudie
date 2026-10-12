@@ -12,8 +12,24 @@ PC에 띄워 둔 Claude Code 세션과 안드로이드 폰으로 무전기처럼
 
 택배 일을 하면서 만들었습니다. 배송하다 보면 폰 화면 볼 틈이 없어서, 이어폰 버튼 하나로 Claude한테 일을 시키고 답을 들으려고요.
 
-```
-[안드로이드 앱] ── 같은 공유기 / Tailscale / VPN ── [PC: Claude Code 채널 플러그인] ⇄ Claude Code 세션
+<p align="center">
+  <img src="docs/screenshots/ko-main.png" width="200" alt="첫 화면: 사용량, 남은 일, 대화 기록">
+  <img src="docs/screenshots/ko-ch.png" width="200" alt="채널 목록">
+  <img src="docs/screenshots/ko-set.png" width="200" alt="설정">
+  <img src="docs/screenshots/home.png" width="200" alt="홈 화면에 떠 있는 작은 무전기 버튼">
+</p>
+
+```mermaid
+flowchart LR
+  subgraph phone["안드로이드 폰"]
+    mic["말하기"] --> stt["음성 인식"]
+    tts["음성으로 읽기"]
+  end
+  subgraph pc["PC"]
+    plugin["walkie 플러그인"] <--> session["Claude Code 세션"]
+  end
+  stt -- "글자 (같은 Wi-Fi · Tailscale)" --> plugin
+  plugin -- "답 글자" --> tts
 ```
 
 - 음성 인식과 음성 읽기는 폰에서 처리하고, PC와는 글자만 주고받습니다.
@@ -104,8 +120,24 @@ Talk to a Claude Code session running on your PC from your Android phone, like a
 
 I built this while working as a parcel courier. On the road there's no time to look at the phone, so I wanted to hand Claude a task with one press of the earphone button and hear the answer.
 
-```
-[Android app] ── same Wi-Fi / Tailscale / VPN ── [PC: Claude Code channel plugin] ⇄ Claude Code session
+<p align="center">
+  <img src="docs/screenshots/en-main.png" width="200" alt="Main screen: usage, open items, conversation">
+  <img src="docs/screenshots/en-ch.png" width="200" alt="Channel list">
+  <img src="docs/screenshots/en-set.png" width="200" alt="Settings">
+  <img src="docs/screenshots/home.png" width="200" alt="Floating mini walkie button on the home screen">
+</p>
+
+```mermaid
+flowchart LR
+  subgraph phone["Android phone"]
+    mic["Talk"] --> stt["Speech recognition"]
+    tts["Read aloud"]
+  end
+  subgraph pc["PC"]
+    plugin["walkie plugin"] <--> session["Claude Code session"]
+  end
+  stt -- "text (same Wi-Fi · Tailscale)" --> plugin
+  plugin -- "reply text" --> tts
 ```
 
 - Speech recognition and text-to-speech run on the phone; only text goes to the PC.
