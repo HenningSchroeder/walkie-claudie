@@ -205,7 +205,7 @@ class PixelIcon(ctx: Context, val rows: List<String>, color: Int, cell: Float) :
             "############",
             "....###.....",
         )
-        val POWER = listOf( // shorter straight sides: longer ones read as ( | )
+        val POWER = listOf( // a gently rounded bottom: narrowing row by row read as a point, flat as a bucket (10/12)
             ".....##.....",
             "..#..##..#..",
             ".##..##..##.",
@@ -214,10 +214,10 @@ class PixelIcon(ctx: Context, val rows: List<String>, color: Int, cell: Float) :
             "##...##...##",
             "##........##",
             "##........##",
+            "##........##",
             ".##......##.",
-            "..##....##..",
+            "..########..",
             "...######...",
-            "....####....",
         )
         val CANCEL = listOf(
             "##........##",
