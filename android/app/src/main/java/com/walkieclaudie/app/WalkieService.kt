@@ -215,21 +215,23 @@ class WalkieService : Service() {
             override fun run() {
                 if (!running) return
                 blinkOn = !blinkOn
-                led.setColor(when {
-                    Talk.listening -> Ui.LED_REC
-                    Talk.status == R.string.st_offline -> if (blinkOn) Ui.LED_REC else Ui.KEY
-                    else -> Ui.LED_OK
-                })
+                showLed()
                 main.postDelayed(this, 500)
             }
         })
     }
 
+    private fun showLed() = led.setColor(when {
+        Talk.listening -> Ui.LED_REC
+        Talk.status == R.string.st_offline -> if (blinkOn) Ui.LED_REC else Ui.KEY
+        else -> Ui.LED_OK
+    })
+
     private fun setListening(on: Boolean) {
         Talk.listening = on
         if (!on) { Talk.hold = false; Talk.partial = "" }
         Talk.refresh()
-        if (::button.isInitialized) (button.background as KeyDrawable).face = if (on) Ui.LED_REC else Ui.KEY
+        if (::button.isInitialized) { (button.background as KeyDrawable).face = if (on) Ui.LED_REC else Ui.KEY; showLed() }
     }
 
     // --- earphone buttons ---

@@ -3,7 +3,6 @@ package com.walkieclaudie.app
 import android.Manifest
 import android.app.Activity
 import android.content.Intent
-import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
@@ -155,7 +154,8 @@ class MainActivity : Activity() {
         chMenu = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         chList = body.lcd(ScrollView(this).apply { isVerticalScrollBarEnabled = false; addView(chMenu) }, weight = 1f)
 
-        body.key(key(R.string.settings) { startActivity(Intent(this, SettingsActivity::class.java)) }.apply { icon(PixelIcon.GEAR, R.string.settings) })
+        // The gear's empty corners make it look small: bigger cells bring it to the mic's height.
+        body.key(key(R.string.settings) { startActivity(Intent(this, SettingsActivity::class.java)) }.apply { icon(PixelIcon.GEAR, R.string.settings, cell = 2.75f) })
         power = key(R.string.power_off) {
             when {
                 Talk.listening -> startService(Intent(this, WalkieService::class.java).setAction(WalkieService.CANCEL))
@@ -166,7 +166,7 @@ class MainActivity : Activity() {
         body.key(power)
         body.key(key(R.string.talk) {
             startForegroundService(Intent(this, WalkieService::class.java).setAction(WalkieService.TALK))
-        }.apply { icon(PixelIcon.MIC, R.string.talk, Color.WHITE) })
+        }.apply { icon(PixelIcon.MIC, R.string.talk) })
         for (i in 0 until body.keys.childCount) mainKeys.add(body.keys.getChildAt(i))
         back = key(R.string.back) { closeChannels() }
         body.key(back)
