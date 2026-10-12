@@ -19,18 +19,7 @@ PC에 띄워 둔 Claude Code 세션과 안드로이드 폰으로 무전기처럼
   <img src="docs/screenshots/home.png" width="200" alt="홈 화면에 떠 있는 작은 무전기 버튼">
 </p>
 
-```mermaid
-flowchart LR
-  subgraph phone["안드로이드 폰"]
-    mic["말하기"] --> stt["음성 인식"]
-    tts["음성으로 읽기"]
-  end
-  subgraph pc["PC"]
-    plugin["walkie 플러그인"] <--> session["Claude Code 세션"]
-  end
-  stt -- "글자 (같은 Wi-Fi · Tailscale)" --> plugin
-  plugin -- "답 글자" --> tts
-```
+<p align="center"><img src="docs/screenshots/diagram-ko.png" width="820" alt="연결 구조: 폰에서 말을 글자로 바꿔 PC의 walkie 플러그인으로 보내고, Claude Code 세션의 답 글자를 폰이 읽어 줍니다"></p>
 
 - 음성 인식과 음성 읽기는 폰에서 처리하고, PC와는 글자만 주고받습니다.
 - 중계 서버는 없습니다. 폰이 PC 주소로 직접 연결합니다.
@@ -127,18 +116,7 @@ I built this while working as a parcel courier. On the road there's no time to l
   <img src="docs/screenshots/home.png" width="200" alt="Floating mini walkie button on the home screen">
 </p>
 
-```mermaid
-flowchart LR
-  subgraph phone["Android phone"]
-    mic["Talk"] --> stt["Speech recognition"]
-    tts["Read aloud"]
-  end
-  subgraph pc["PC"]
-    plugin["walkie plugin"] <--> session["Claude Code session"]
-  end
-  stt -- "text (same Wi-Fi · Tailscale)" --> plugin
-  plugin -- "reply text" --> tts
-```
+<p align="center"><img src="docs/screenshots/diagram-en.png" width="820" alt="How it connects: the phone turns speech into text and sends it to the walkie plugin on the PC; the Claude Code session's reply comes back as text and the phone reads it aloud"></p>
 
 - Speech recognition and text-to-speech run on the phone; only text goes to the PC.
 - No relay server: the phone connects straight to your PC.
