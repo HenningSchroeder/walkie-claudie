@@ -172,6 +172,16 @@ class MainActivity : Activity() {
         (back.layoutParams as LinearLayout.LayoutParams).marginStart = 0 // shown alone, in place of the three
     }
 
+    override fun onStart() {
+        super.onStart()
+        WalkieService.appShown = true
+    }
+
+    override fun onStop() {
+        super.onStop()
+        WalkieService.appShown = false
+    }
+
     override fun onResume() {
         super.onResume()
         Talk.onChange = ::render

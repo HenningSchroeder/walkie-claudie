@@ -69,6 +69,10 @@ class WalkieService : Service() {
 
         /** The running service, for the accessibility service's volume-key hold. Main thread only. */
         var instance: WalkieService? = null
+
+        /** The app's own screen is up: it has its own talk key, so the floating one hides (10/12 사용자). Main thread only. */
+        var appShown = false
+            set(v) { field = v; instance?.showFloating() }
     }
 
     private val main = Handler(Looper.getMainLooper())
@@ -211,6 +215,7 @@ class WalkieService : Service() {
             true
         }
         wm.addView(floating, lp)
+        showFloating()
         main.post(object : Runnable { // every 0.5 s, for the offline blink
             override fun run() {
                 if (!running) return
@@ -219,6 +224,10 @@ class WalkieService : Service() {
                 main.postDelayed(this, 500)
             }
         })
+    }
+
+    fun showFloating() {
+        if (::floating.isInitialized) floating.visibility = if (appShown) View.GONE else View.VISIBLE
     }
 
     private fun showLed() = led.setColor(when {
