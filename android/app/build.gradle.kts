@@ -1,4 +1,5 @@
 import java.time.LocalDateTime
+import java.util.Properties
 import java.time.format.DateTimeFormatter
 
 plugins {
@@ -7,11 +8,11 @@ plugins {
 }
 
 android {
-    namespace = "com.walkieclaudie.app"
+    namespace = "com.bookmari.walkie"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.walkieclaudie.app"
+        applicationId = "com.bookmari.walkie"
         minSdk = 29
         targetSdk = 36
         versionCode = 1
@@ -21,6 +22,24 @@ android {
         val dirty = if (git("status", "--porcelain").isEmpty()) "" else "+"
         val time = LocalDateTime.now().format(DateTimeFormatter.ofPattern("MM-dd HH:mm"))
         buildConfigField("String", "BUILD", "\"${git("rev-parse", "--short", "HEAD")}$dirty $time\"")
+    }
+
+    // Release key lives outside the repo (path overridable with -Pwalkie.keystore=...); without it a release build is debug-signed.
+    val keyProps = file(providers.gradleProperty("walkie.keystore").getOrElse(System.getProperty("user.home") + "/.android-keys/walkie-claudie/keystore.properties"))
+    signingConfigs {
+        if (keyProps.exists()) create("release") {
+            val k = Properties().apply { keyProps.inputStream().use { load(it) } }
+            storeFile = file(k.getProperty("storeFile"))
+            storePassword = k.getProperty("storePassword")
+            keyAlias = k.getProperty("keyAlias")
+            keyPassword = k.getProperty("keyPassword")
+        }
+    }
+
+    buildTypes {
+        release {
+            signingConfig = signingConfigs.findByName("release") ?: signingConfigs.getByName("debug")
+        }
     }
 
     compileOptions {

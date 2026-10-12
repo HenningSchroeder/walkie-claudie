@@ -1,4 +1,4 @@
-package com.walkieclaudie.app
+package com.bookmari.walkie
 
 import android.app.Application
 
