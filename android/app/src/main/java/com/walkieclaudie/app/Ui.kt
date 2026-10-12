@@ -142,7 +142,7 @@ class KeyDrawable(ctx: Context) : Drawable() {
 
 /**
  * Dot-art icon from rows of '#'/'.' in [color]: one cell = [cell]dp with a 1px gap between dots (an LCD's dot
- * seams; 10/12 사용자), centred on the key face and sinking with it when pressed. Strokes are 2 dots everywhere.
+ * seams; 10/12 사용자), centred on the key face and sinking with it when pressed. Strokes are 2 dots (the sliders' lines excepted).
  */
 class PixelIcon(ctx: Context, val rows: List<String>, color: Int, cell: Float) : Drawable() {
     private val px = ctx.dpi(cell) // whole pixels, so every gap is the same
@@ -190,19 +190,20 @@ class PixelIcon(ctx: Context, val rows: List<String>, color: Int, cell: Float) :
             "..########..",
             "..########..",
         )
-        val GEAR = listOf(
-            ".....##.....",
-            ".##..##..##.",
-            ".##.####.##.",
-            "..########..",
-            "..###..###..",
-            "####....####",
-            "####....####",
-            "..###..###..",
-            "..########..",
-            ".##.####.##.",
-            ".##..##..##.",
-            ".....##.....",
+        val SLIDERS = listOf( // settings: a gear read as a bug (10/12 사용자). Thin lines so the knobs stand out.
+            "..####......",
+            "############",
+            "..####......",
+            "............",
+            "............",
+            "......####..",
+            "############",
+            "......####..",
+            "............",
+            "............",
+            "...####.....",
+            "############",
+            "...####.....",
         )
         val POWER = listOf(
             ".....##.....",

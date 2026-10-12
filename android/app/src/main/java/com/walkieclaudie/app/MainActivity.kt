@@ -154,8 +154,7 @@ class MainActivity : Activity() {
         chMenu = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         chList = body.lcd(ScrollView(this).apply { isVerticalScrollBarEnabled = false; addView(chMenu) }, weight = 1f)
 
-        // The gear's empty corners make it look small: bigger cells bring it to the mic's height.
-        body.key(key(R.string.settings) { startActivity(Intent(this, SettingsActivity::class.java)) }.apply { icon(PixelIcon.GEAR, R.string.settings, cell = 2.75f) })
+        body.key(key(R.string.settings) { startActivity(Intent(this, SettingsActivity::class.java)) }.apply { icon(PixelIcon.SLIDERS, R.string.settings) })
         power = key(R.string.power_off) {
             when {
                 Talk.listening -> startService(Intent(this, WalkieService::class.java).setAction(WalkieService.CANCEL))
