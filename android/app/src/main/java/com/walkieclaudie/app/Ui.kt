@@ -140,9 +140,9 @@ class KeyDrawable(ctx: Context) : Drawable() {
     override fun getOpacity() = PixelFormat.TRANSLUCENT
 }
 
-/** Dot-art icon from rows of '#'/'.' in [color], one cell = [cell]dp, centred on the key face (above its 3dp shadow). */
+/** Dot-art icon from rows of '#'/'.' in [color], one cell = [cell]dp with a 1px gap, centred on the key face (above its 3dp shadow). */
 class PixelIcon(ctx: Context, private val rows: List<String>, color: Int, cell: Number = 2) : Drawable() {
-    private val px = ctx.dpi(cell) // whole pixels: fractional cells leave seams between dots
+    private val px = ctx.dpi(cell) // whole pixels, so every dot gets the same 1px gap (an LCD's dot seams; 10/12 사용자)
     private val sh = ctx.dpi(3)
     private val paint = Paint().apply { this.color = color }
 
@@ -150,7 +150,7 @@ class PixelIcon(ctx: Context, private val rows: List<String>, color: Int, cell: 
         val x0 = bounds.centerX() - rows[0].length * px / 2
         val y0 = bounds.top + (bounds.height() - sh - rows.size * px) / 2
         rows.forEachIndexed { y, row -> row.forEachIndexed { x, ch ->
-            if (ch == '#') c.drawRect((x0 + x * px).toFloat(), (y0 + y * px).toFloat(), (x0 + (x + 1) * px).toFloat(), (y0 + (y + 1) * px).toFloat(), paint)
+            if (ch == '#') c.drawRect((x0 + x * px).toFloat(), (y0 + y * px).toFloat(), (x0 + (x + 1) * px - 1).toFloat(), (y0 + (y + 1) * px - 1).toFloat(), paint)
         } }
     }
 
