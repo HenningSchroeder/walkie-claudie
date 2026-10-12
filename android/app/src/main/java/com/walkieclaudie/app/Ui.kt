@@ -140,15 +140,29 @@ class KeyDrawable(ctx: Context) : Drawable() {
     override fun getOpacity() = PixelFormat.TRANSLUCENT
 }
 
-/** Dot-art icon from rows of '#'/'.' in [color], one cell = [cell]dp with a 1px gap, centred on the key face (above its 3dp shadow). */
-class PixelIcon(ctx: Context, private val rows: List<String>, color: Int, cell: Number = 2) : Drawable() {
-    private val px = ctx.dpi(cell) // whole pixels, so every dot gets the same 1px gap (an LCD's dot seams; 10/12 사용자)
+/**
+ * Dot-art icon from rows of '#'/'.' in [color]: one cell = [cell]dp with a 1px gap between dots (an LCD's dot
+ * seams; 10/12 사용자), centred on the key face and sinking with it when pressed. Strokes are 2 dots everywhere.
+ */
+class PixelIcon(ctx: Context, val rows: List<String>, color: Int, cell: Float) : Drawable() {
+    private val px = ctx.dpi(cell) // whole pixels, so every gap is the same
     private val sh = ctx.dpi(3)
+    private val sink = ctx.dpi(2)
     private val paint = Paint().apply { this.color = color }
+    private var pressed = false
+
+    override fun isStateful() = true
+    override fun onStateChange(state: IntArray): Boolean {
+        val p = android.R.attr.state_pressed in state
+        if (p == pressed) return false
+        pressed = p
+        invalidateSelf()
+        return true
+    }
 
     override fun draw(c: Canvas) {
         val x0 = bounds.centerX() - rows[0].length * px / 2
-        val y0 = bounds.top + (bounds.height() - sh - rows.size * px) / 2
+        val y0 = bounds.top + (bounds.height() - sh - rows.size * px) / 2 + if (pressed) sink else 0
         rows.forEachIndexed { y, row -> row.forEachIndexed { x, ch ->
             if (ch == '#') c.drawRect((x0 + x * px).toFloat(), (y0 + y * px).toFloat(), (x0 + (x + 1) * px - 1).toFloat(), (y0 + (y + 1) * px - 1).toFloat(), paint)
         } }
@@ -161,64 +175,71 @@ class PixelIcon(ctx: Context, private val rows: List<String>, color: Int, cell: 
 
     companion object {
         val MIC = listOf(
-            "...###...",
-            "..#####..",
-            "..#####..",
-            "..#####..",
-            "#.#####.#",
-            "#.#####.#",
-            "#..###..#",
-            ".#.....#.",
-            "..#####..",
-            "....#....",
-            "....#....",
-            "..#####..",
+            ".....##.....",
+            "....####....",
+            "....####....",
+            "....####....",
+            "##..####..##",
+            "##..####..##",
+            "##..####..##",
+            ".##..##..##.",
+            "..##....##..",
+            "...######...",
+            ".....##.....",
+            ".....##.....",
+            "..########..",
+            "..########..",
         )
         val GEAR = listOf(
-            "....###....",
-            ".##.###.##.",
-            ".#########.",
-            "..##...##..",
-            "###.....###",
-            "###.....###",
-            "###.....###",
-            "..##...##..",
-            ".#########.",
-            ".##.###.##.",
-            "....###....",
+            ".....##.....",
+            ".##..##..##.",
+            ".##.####.##.",
+            "..########..",
+            "..###..###..",
+            "####....####",
+            "####....####",
+            "..###..###..",
+            "..########..",
+            ".##.####.##.",
+            ".##..##..##.",
+            ".....##.....",
         )
         val POWER = listOf(
-            ".....#.....",
-            "..##.#.##..",
-            ".#...#...#.",
-            "#....#....#",
-            "#....#....#",
-            "#.........#",
-            "#.........#",
-            "#.........#",
-            ".#.......#.",
-            "..##...##..",
-            "....###....",
+            ".....##.....",
+            "..#..##..#..",
+            ".##..##..##.",
+            "##...##...##",
+            "##...##...##",
+            "##...##...##",
+            "##...##...##",
+            "##........##",
+            "##........##",
+            ".##......##.",
+            "..########..",
+            "....####....",
         )
         val CANCEL = listOf(
-            "#.......#",
-            ".#.....#.",
-            "..#...#..",
-            "...#.#...",
-            "....#....",
-            "...#.#...",
-            "..#...#..",
-            ".#.....#.",
-            "#.......#",
+            "##........##",
+            "###......###",
+            ".###....###.",
+            "..###..###..",
+            "...######...",
+            "....####....",
+            "....####....",
+            "...######...",
+            "..###..###..",
+            ".###....###.",
+            "###......###",
+            "##........##",
         )
     }
 }
 
-/** A key that shows a dot icon instead of its label; the label stays as the screen-reader name. */
-fun TextView.icon(rows: List<String>, label: Int, color: Int = Ui.KEY_TEXT) {
+/** A key that shows a dot icon instead of its label; the label stays as the screen-reader name. App keys use 2.5dp cells. */
+fun TextView.icon(rows: List<String>, label: Int, color: Int = Ui.KEY_TEXT, cell: Float = 2.5f) {
     text = ""
     contentDescription = context.getString(label)
-    foreground = PixelIcon(context, rows, color)
+    if ((foreground as? PixelIcon)?.rows !== rows) foreground = PixelIcon(context, rows, color, cell) // render() calls this on every change
 }
 
 fun Context.key(label: Int, onClick: () -> Unit) = TextView(this).apply {
