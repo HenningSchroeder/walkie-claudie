@@ -174,19 +174,21 @@ class PixelIcon(ctx: Context, val rows: List<String>, color: Int, cell: Float) :
     override fun getOpacity() = PixelFormat.TRANSLUCENT
 
     companion object {
-        val MIC = listOf( // a wide head and low arms: a narrow head beside the arms read as a trident (10/12)
+        val MIC = listOf( // a wide head with short arms read as a trophy (10/12): narrow head, tall arms
+            ".....##.....",
             "....####....",
-            "...######...",
-            "...######...",
-            "...######...",
-            "...######...",
-            "##.######.##",
+            "....####....",
+            "....####....",
             "##..####..##",
+            "##..####..##",
+            "##..####..##",
+            "##...##...##",
             ".##......##.",
             "..########..",
             ".....##.....",
             ".....##.....",
-            "...######...",
+            "..########..",
+            "..########..",
         )
         val SLIDERS = listOf( // settings: a gear read as a bug (10/12 사용자). Thin lines so the knobs stand out.
             "..###.......",
