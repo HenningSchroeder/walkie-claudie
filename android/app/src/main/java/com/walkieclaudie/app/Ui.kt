@@ -174,7 +174,51 @@ class PixelIcon(ctx: Context, private val rows: List<String>, color: Int, cell: 
             "....#....",
             "..#####..",
         )
+        val GEAR = listOf(
+            "....###....",
+            ".##.###.##.",
+            ".#########.",
+            "..##...##..",
+            "###.....###",
+            "###.....###",
+            "###.....###",
+            "..##...##..",
+            ".#########.",
+            ".##.###.##.",
+            "....###....",
+        )
+        val POWER = listOf(
+            ".....#.....",
+            "..##.#.##..",
+            ".#...#...#.",
+            "#....#....#",
+            "#....#....#",
+            "#.........#",
+            "#.........#",
+            "#.........#",
+            ".#.......#.",
+            "..##...##..",
+            "....###....",
+        )
+        val CANCEL = listOf(
+            "#.......#",
+            ".#.....#.",
+            "..#...#..",
+            "...#.#...",
+            "....#....",
+            "...#.#...",
+            "..#...#..",
+            ".#.....#.",
+            "#.......#",
+        )
     }
+}
+
+/** A key that shows a dot icon instead of its label; the label stays as the screen-reader name. */
+fun TextView.icon(rows: List<String>, label: Int, color: Int = Ui.KEY_TEXT) {
+    text = ""
+    contentDescription = context.getString(label)
+    foreground = PixelIcon(context, rows, color)
 }
 
 fun Context.key(label: Int, onClick: () -> Unit) = TextView(this).apply {

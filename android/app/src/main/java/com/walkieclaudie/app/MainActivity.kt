@@ -155,7 +155,7 @@ class MainActivity : Activity() {
         chMenu = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         chList = body.lcd(ScrollView(this).apply { isVerticalScrollBarEnabled = false; addView(chMenu) }, weight = 1f)
 
-        body.key(key(R.string.settings) { startActivity(Intent(this, SettingsActivity::class.java)) })
+        body.key(key(R.string.settings) { startActivity(Intent(this, SettingsActivity::class.java)) }.apply { icon(PixelIcon.GEAR, R.string.settings) })
         power = key(R.string.power_off) {
             when {
                 Talk.listening -> startService(Intent(this, WalkieService::class.java).setAction(WalkieService.CANCEL))
@@ -166,7 +166,7 @@ class MainActivity : Activity() {
         body.key(power)
         body.key(key(R.string.talk) {
             startForegroundService(Intent(this, WalkieService::class.java).setAction(WalkieService.TALK))
-        }.apply { setTextColor(Color.WHITE) })
+        }.apply { icon(PixelIcon.MIC, R.string.talk, Color.WHITE) })
         for (i in 0 until body.keys.childCount) mainKeys.add(body.keys.getChildAt(i))
         back = key(R.string.back) { closeChannels() }
         body.key(back)
@@ -277,7 +277,8 @@ class MainActivity : Activity() {
         offMark.visibility = if (running) View.GONE else View.VISIBLE
         log.alpha = if (running) 1f else 0.3f
         todoList.alpha = log.alpha
-        power.setText(if (Talk.listening) R.string.cancel else if (running) R.string.power_off else R.string.power_on)
+        if (Talk.listening) power.icon(PixelIcon.CANCEL, R.string.cancel)
+        else power.icon(PixelIcon.POWER, if (running) R.string.power_off else R.string.power_on) // on/off: the key's LED
 
         val shown = Talk.issues.take(4)
         val open = prefs.getBoolean(TODO_OPEN, true)
