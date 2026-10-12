@@ -180,7 +180,10 @@ class WalkieService : Service() {
             y = prefs.getInt("y", 600)
         }
         // A tiny walkie: the dark body, the rubber key, and the body's LED (same meaning as in the app).
-        button = key(R.string.talk) {}.apply { textSize = 12f; isClickable = false }
+        button = key(R.string.talk) {}.apply {
+            text = ""; contentDescription = getString(R.string.talk); isClickable = false
+            foreground = PixelIcon(context, PixelIcon.MIC, Ui.KEY_TEXT)
+        }
         floating = FrameLayout(this).apply {
             background = GradientDrawable().apply { setColor(Ui.BODY); cornerRadius = dp(9) }
             addView(button, FrameLayout.LayoutParams(dpi(60), dpi(47)).apply { setMargins(dpi(8), dpi(14), dpi(8), dpi(8)) })

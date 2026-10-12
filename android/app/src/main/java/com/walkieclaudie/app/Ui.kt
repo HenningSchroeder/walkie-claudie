@@ -140,6 +140,43 @@ class KeyDrawable(ctx: Context) : Drawable() {
     override fun getOpacity() = PixelFormat.TRANSLUCENT
 }
 
+/** Dot-art icon from rows of '#'/'.' in [color], one cell = [cell]dp, centred on the key face (above its 3dp shadow). */
+class PixelIcon(ctx: Context, private val rows: List<String>, color: Int, cell: Number = 2) : Drawable() {
+    private val px = ctx.dpi(cell) // whole pixels: fractional cells leave seams between dots
+    private val sh = ctx.dpi(3)
+    private val paint = Paint().apply { this.color = color }
+
+    override fun draw(c: Canvas) {
+        val x0 = bounds.centerX() - rows[0].length * px / 2
+        val y0 = bounds.top + (bounds.height() - sh - rows.size * px) / 2
+        rows.forEachIndexed { y, row -> row.forEachIndexed { x, ch ->
+            if (ch == '#') c.drawRect((x0 + x * px).toFloat(), (y0 + y * px).toFloat(), (x0 + (x + 1) * px).toFloat(), (y0 + (y + 1) * px).toFloat(), paint)
+        } }
+    }
+
+    override fun setAlpha(alpha: Int) {}
+    override fun setColorFilter(cf: ColorFilter?) {}
+    @Deprecated("Deprecated in Java")
+    override fun getOpacity() = PixelFormat.TRANSLUCENT
+
+    companion object {
+        val MIC = listOf(
+            "...###...",
+            "..#####..",
+            "..#####..",
+            "..#####..",
+            "#.#####.#",
+            "#.#####.#",
+            "#..###..#",
+            ".#.....#.",
+            "..#####..",
+            "....#....",
+            "....#....",
+            "..#####..",
+        )
+    }
+}
+
 fun Context.key(label: Int, onClick: () -> Unit) = TextView(this).apply {
     setText(label)
     typeface = Ui.font(this@key)
