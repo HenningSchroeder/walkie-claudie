@@ -69,9 +69,9 @@ flowchart LR
 
 ### 사용
 - 말하는 방법은 세 가지이고, [설정]에서 각각 켜고 끌 수 있습니다.
-  - **떠 있는 [말하기] 버튼**: 누르고 '삐삐삑' 소리가 나면 말합니다. 다시 누르면 보냅니다. 말하다 잠깐 멈춰도 끊기지 않습니다(최대 2분).
+  - **떠 있는 버튼**: 다른 앱 위에 뜨는 작은 무전기입니다. 마이크를 누르고 '삐삐삑' 소리가 나면 말하고, 다시 누르면 보냅니다. 말하다 잠깐 멈춰도 끊기지 않습니다(최대 2분). 오른쪽 위 불은 연결되면 초록, 송신 중엔 빨강, 끊기면 빨갛게 깜빡입니다. 앱 화면을 보고 있을 땐 숨겨집니다.
   - **음량 ▼ 길게**: 누르고 있는 동안 말하고, 떼면 보냅니다. 짧게 누르면 평소처럼 음량이 바뀝니다. 화면이 켜져 있을 때만 되고, 접근성에서 Walkie-Claudie를 켜야 합니다.
-  - **블루투스 이어폰 버튼**: 한 번 또는 두 번 눌러 시작하고, 다시 누르면 보냅니다. 화면이 꺼져 있어도 됩니다. 음악·팟캐스트 앱이 버튼을 가져가면 떠 있는 [말하기] 버튼을 길게 눌러 되찾으세요.
+  - **블루투스 이어폰 버튼**: 한 번 또는 두 번 눌러 시작하고, 다시 누르면 보냅니다. 화면이 꺼져 있어도 됩니다. 음악·팟캐스트 앱이 버튼을 가져가면 떠 있는 버튼을 길게 눌러 되찾으세요.
 - 길게 말할 때는 독백 모드를 씁니다. 음량 ▲를 길게 눌러 올라가는 세 음이 들리면 손을 떼고 말하고, 다 말하면 다시 ▲를 길게 눌러 한 번에 보냅니다. 오래 쉬어도 끊기지 않고, 10분이 되면 자동으로 보냅니다.
 - PC가 받으면 짧은 확인음이 납니다. 연결이 끊겨 있으면 다시 연결될 때까지 계속 다시 보냅니다.
 - 답이 오면 짧은 호출음이 난 뒤 음성으로 읽어 줍니다. 읽는 엔진·목소리·속도는 앱의 [목소리] 화면에서 고릅니다.
@@ -94,7 +94,7 @@ flowchart LR
 ### 문제 해결
 - **앱이 계속 '끊김'**: 폰에서 PC 주소가 닿는지(같은 Wi-Fi 또는 Tailscale 켜짐), PC 방화벽이 포트 7700~7709를 막지 않는지, 세션이 `WALKIE_ENABLE=1`로 떴는지 확인하세요.
 - **'HTTP 401'**: 키가 다릅니다. `/walkie:pair`로 다시 연결하세요.
-- **이어폰 버튼이 안 먹음**: 음악·팟캐스트 앱이 버튼을 가져간 상태입니다. 떠 있는 [말하기] 버튼을 길게 누르세요.
+- **이어폰 버튼이 안 먹음**: 음악·팟캐스트 앱이 버튼을 가져간 상태입니다. 떠 있는 버튼을 길게 누르세요.
 - **접근성 스위치가 회색**: 직접 설치한 앱은 앱 정보 › ⋮ › '제한된 설정 허용'을 먼저 해야 합니다.
 - 앱의 **버튼 테스트** 화면에서 내 이어폰·음량 버튼이 어떤 키로 잡히는지 볼 수 있습니다.
 
@@ -177,9 +177,9 @@ flowchart LR
 
 ### Usage
 - Three ways to talk, each switchable in Settings:
-  - **Floating Talk button**: tap, wait for the chirp, and speak. Tap again to send. Pausing mid-sentence doesn't cut you off (2 minutes max).
+  - **Floating button**: a small walkie that floats over other apps. Tap the mic, wait for the chirp, and speak; tap again to send. Pausing mid-sentence doesn't cut you off (2 minutes max). The light in its corner is green when connected, red while transmitting, and blinks red when disconnected. It hides while the app itself is on screen.
   - **Hold volume down**: talk while holding, release to send. Short presses still change the volume. Works only with the screen on, and needs Walkie-Claudie turned on under Accessibility.
-  - **Bluetooth earphone button**: press once or twice to start, press again to send. Works with the screen off. If a music or podcast app takes the button, long-press the floating Talk button to get it back.
+  - **Bluetooth earphone button**: press once or twice to start, press again to send. Works with the screen off. If a music or podcast app takes the button, long-press the floating button to get it back.
 - For talking at length, use monologue mode: hold volume up until you hear a rising three-tone, let go and speak, then hold volume up again to send it all at once. Long pauses don't cut you off, and it sends automatically after 10 minutes.
 - A short beep plays once the PC has the message. If the connection is down, the app keeps retrying until it gets through.
 - When a reply arrives you hear a call-alert beep, then the reply is read aloud. Pick the engine, voice and speed in the app's Voice screen.
@@ -202,7 +202,7 @@ flowchart LR
 ### Troubleshooting
 - **App stays "Disconnected"**: check the phone can reach the PC (same Wi-Fi or Tailscale on), the PC firewall allows ports 7700–7709, and the session was started with `WALKIE_ENABLE=1`.
 - **"HTTP 401"**: wrong key. Pair again with `/walkie:pair`.
-- **Earphone button does nothing**: a music or podcast app has it. Long-press the floating Talk button.
+- **Earphone button does nothing**: a music or podcast app has it. Long-press the floating button.
 - **Accessibility switch greyed out**: for sideloaded apps, App info › ⋮ › Allow restricted settings first.
 - The app's **Button test** screen shows which keys your earphones and volume buttons send.
 
