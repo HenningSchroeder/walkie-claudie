@@ -55,7 +55,7 @@
 
 1. 터미널에서 PC에 플러그인 설치
    ```sh
-   claude plugin marketplace add <이 저장소 주소 또는 경로>
+   claude plugin marketplace add ahn4jang27/walkie-claudie
    claude plugin install walkie@walkie-claudie
    ```
 2. 터미널에서 무전기로 대화할 새 Claude Code 세션을 `WALKIE_ENABLE=1`로 실행
@@ -196,7 +196,7 @@ Putting those four together, the plan became: vibe code with my mouth and ears w
 
 1. In a terminal, install the plugin on the PC
    ```sh
-   claude plugin marketplace add <this repo URL or path>
+   claude plugin marketplace add ahn4jang27/walkie-claudie
    claude plugin install walkie@walkie-claudie
    ```
 2. In a terminal, start a new Claude Code session with `WALKIE_ENABLE=1`

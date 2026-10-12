@@ -2,6 +2,11 @@
   "name": "walkie",
   "description": "Voice walkie-talkie channel for Claude Code — push-to-talk from the Walkie-Claudie Android app over your own network.",
   "version": "0.1.0",
+  "author": {
+    "name": "bookmari"
+  },
+  "homepage": "https://github.com/ahn4jang27/walkie-claudie",
+  "repository": "https://github.com/ahn4jang27/walkie-claudie",
   "license": "MIT",
   "keywords": ["channel", "voice", "android", "mcp"]
 }
