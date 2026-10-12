@@ -11,9 +11,9 @@ import android.content.IntentFilter
 import android.content.pm.ServiceInfo
 import android.media.AudioAttributes
 import android.media.AudioFormat
+import android.media.AudioManager
 import android.media.AudioTrack
 import android.media.session.MediaSession
-import android.media.session.PlaybackState
 import android.view.KeyEvent
 
 /**
@@ -40,20 +40,24 @@ class MediaButtonService : Service() {
                     @Suppress("DEPRECATION")
                     val e = intent.getParcelableExtra<KeyEvent>(Intent.EXTRA_KEY_EVENT) ?: return false
                     KeyLog.key("media", e)
-                    return true
+                    return !inCall() // calls keep answer/hang-up
                 }
             })
-            setPlaybackState(
-                PlaybackState.Builder()
-                    .setActions(PlaybackState.ACTION_PLAY_PAUSE or PlaybackState.ACTION_PLAY or PlaybackState.ACTION_PAUSE or
-                        PlaybackState.ACTION_SKIP_TO_NEXT or PlaybackState.ACTION_SKIP_TO_PREVIOUS)
-                    .setState(PlaybackState.STATE_PLAYING, 0, 1f)
-                    .build()
-            )
+            playing(true)
             isActive = true
         }
         KeyLog.add("media", "session active")
+        // Same as the walkie: step aside for the whole call, or a test left running eats answer/hang-up.
+        if (android.os.Build.VERSION.SDK_INT >= 31) getSystemService(AudioManager::class.java)
+            .addOnModeChangedListener(mainExecutor, modeListener)
         registerReceiver(screen, IntentFilter().apply { addAction(Intent.ACTION_SCREEN_ON); addAction(Intent.ACTION_SCREEN_OFF) })
+    }
+
+    private val modeListener by lazy {
+        AudioManager.OnModeChangedListener {
+            KeyLog.add("media", "audio mode $it")
+            session.playing(!inCall()); session.isActive = !inCall()
+        }
     }
 
     // Marks screen on/off in the log so earphone presses can be read against it.
@@ -67,6 +71,8 @@ class MediaButtonService : Service() {
     }
 
     override fun onDestroy() {
+        if (android.os.Build.VERSION.SDK_INT >= 31) getSystemService(AudioManager::class.java)
+            .removeOnModeChangedListener(modeListener)
         unregisterReceiver(screen)
         session.release()
         KeyLog.add("media", "session released")

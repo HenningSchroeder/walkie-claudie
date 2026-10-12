@@ -136,7 +136,7 @@ class WalkieService : Service() {
             // answer/hang-up never reached the phone app (10/9 사용자, also while a reply was being read):
             // step aside for the whole call.
             KeyLog.add("walkie", "audio mode ${audio.mode}") // 1 ringing, 2 call, 3 VoIP; 0 normal
-            session?.let { playing(it, !inCall()); it.isActive = !inCall() }
+            session?.let { it.playing(!inCall()); it.isActive = !inCall() }
             if (inCall()) { tts.stop(); recognizer?.cancel(); endListening(); mono?.let { monologue() } }
         }
     }
@@ -227,25 +227,13 @@ class WalkieService : Service() {
                     return true
                 }
             })
-            playing(this, true)
+            playing(true)
             isActive = true
         }
         // Taken once at start. A music/podcast app that plays afterwards keeps the earphone button
         // (even paused; user's call 10/8) until the user takes it back: long-press the floating button.
         playSilence()
     }
-
-    /**
-     * "Playing" is what earns the earphone button, but Bluetooth earbuds see it too (AVRCP) and may send their
-     * button as play/pause instead of answer/hang-up while it says playing — so a call sets it paused.
-     */
-    private fun playing(s: MediaSession, on: Boolean) = s.setPlaybackState(
-        PlaybackState.Builder()
-            .setActions(PlaybackState.ACTION_PLAY_PAUSE or PlaybackState.ACTION_PLAY or PlaybackState.ACTION_PAUSE or
-                PlaybackState.ACTION_SKIP_TO_NEXT)
-            .setState(if (on) PlaybackState.STATE_PLAYING else PlaybackState.STATE_PAUSED, 0, 1f)
-            .build()
-    )
 
     // --- speech in ---
 
@@ -588,3 +576,15 @@ class WalkieService : Service() {
 
 /** Ringing, in a phone call, or in a VoIP call (KakaoTalk etc.): the walkie keeps its hands off. */
 fun Context.inCall() = getSystemService(AudioManager::class.java).mode != AudioManager.MODE_NORMAL
+
+/**
+ * "Playing" is what earns the earphone button, but Bluetooth earbuds see it too (AVRCP) and may send their
+ * button as play/pause instead of answer/hang-up while it says playing — so a call sets it paused.
+ */
+fun MediaSession.playing(on: Boolean) = setPlaybackState(
+    PlaybackState.Builder()
+        .setActions(PlaybackState.ACTION_PLAY_PAUSE or PlaybackState.ACTION_PLAY or PlaybackState.ACTION_PAUSE or
+            PlaybackState.ACTION_SKIP_TO_NEXT)
+        .setState(if (on) PlaybackState.STATE_PLAYING else PlaybackState.STATE_PAUSED, 0, 1f)
+        .build()
+)
