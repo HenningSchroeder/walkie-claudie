@@ -174,21 +174,19 @@ class PixelIcon(ctx: Context, val rows: List<String>, color: Int, cell: Float) :
     override fun getOpacity() = PixelFormat.TRANSLUCENT
 
     companion object {
-        val MIC = listOf(
-            ".....##.....",
+        val MIC = listOf( // a wide head and low arms: a narrow head beside the arms read as a trident (10/12)
             "....####....",
-            "....####....",
-            "....####....",
+            "...######...",
+            "...######...",
+            "...######...",
+            "...######...",
+            "##.######.##",
             "##..####..##",
-            "##..####..##",
-            "##..####..##",
-            "##...##...##",
             ".##......##.",
             "..########..",
             ".....##.....",
             ".....##.....",
-            "..########..",
-            "..########..",
+            "...######...",
         )
         val SLIDERS = listOf( // settings: a gear read as a bug (10/12 사용자). Thin lines so the knobs stand out.
             "..###.......",
@@ -205,18 +203,18 @@ class PixelIcon(ctx: Context, val rows: List<String>, color: Int, cell: Float) :
             "############",
             "....###.....",
         )
-        val POWER = listOf(
+        val POWER = listOf( // shorter straight sides: longer ones read as ( | )
             ".....##.....",
             "..#..##..#..",
             ".##..##..##.",
             "##...##...##",
             "##...##...##",
             "##...##...##",
-            "##...##...##",
             "##........##",
             "##........##",
             ".##......##.",
-            "..########..",
+            "..##....##..",
+            "...######...",
             "....####....",
         )
         val CANCEL = listOf(
