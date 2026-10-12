@@ -10,6 +10,7 @@ import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.ServiceInfo
 import android.graphics.PixelFormat
+import android.graphics.drawable.GradientDrawable
 import android.media.AudioManager
 import android.media.AudioAttributes
 import android.media.SoundPool
@@ -26,7 +27,9 @@ import android.speech.tts.TextToSpeech
 import android.view.Gravity
 import android.view.KeyEvent
 import android.view.MotionEvent
+import android.view.View
 import android.view.WindowManager
+import android.widget.FrameLayout
 import android.widget.TextView
 import org.json.JSONArray
 import org.json.JSONObject
@@ -81,6 +84,9 @@ class WalkieService : Service() {
     private var recognizer: SpeechRecognizer? = null
     private lateinit var wm: WindowManager
     private lateinit var button: TextView
+    private lateinit var floating: FrameLayout
+    private val led = GradientDrawable().apply { shape = GradientDrawable.OVAL; setColor(Ui.LED_OK) }
+    private var blinkOn = false
     private var session: MediaSession? = null
 
     override fun onCreate() {
@@ -149,7 +155,7 @@ class WalkieService : Service() {
         session?.release()
         recognizer?.destroy()
         unmuteChimes()
-        if (::button.isInitialized) wm.removeView(button)
+        if (::floating.isInitialized) wm.removeView(floating)
         mono?.stop()
         if (screenOn.isHeld) screenOn.release()
         tts.shutdown()
@@ -166,16 +172,24 @@ class WalkieService : Service() {
     private fun addButton() {
         wm = getSystemService(WindowManager::class.java)
         val lp = WindowManager.LayoutParams(
-            dpi(64), dpi(50), WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+            -2, -2, WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE, PixelFormat.TRANSLUCENT,
         ).apply {
             gravity = Gravity.TOP or Gravity.START
             x = prefs.getInt("x", 0)
             y = prefs.getInt("y", 600)
         }
-        button = key(R.string.talk) {}.apply { textSize = 12f }
+        // A tiny walkie: the dark body, the rubber key, and the body's LED (same meaning as in the app).
+        button = key(R.string.talk) {}.apply { textSize = 12f; isClickable = false }
+        floating = FrameLayout(this).apply {
+            background = GradientDrawable().apply { setColor(Ui.BODY); cornerRadius = dp(9) }
+            addView(button, FrameLayout.LayoutParams(dpi(60), dpi(47)).apply { setMargins(dpi(8), dpi(14), dpi(8), dpi(8)) })
+            addView(View(context).apply { background = led }, FrameLayout.LayoutParams(dpi(7), dpi(7), Gravity.TOP or Gravity.END).apply {
+                topMargin = dpi(4); marginEnd = dpi(10)
+            })
+        }
         var downX = 0f; var downY = 0f; var startX = 0; var startY = 0; var moved = false
-        button.setOnTouchListener { v, e ->
+        floating.setOnTouchListener { v, e ->
             when (e.action) {
                 MotionEvent.ACTION_DOWN -> { downX = e.rawX; downY = e.rawY; startX = lp.x; startY = lp.y; moved = false }
                 MotionEvent.ACTION_MOVE -> {
@@ -194,7 +208,19 @@ class WalkieService : Service() {
             }
             true
         }
-        wm.addView(button, lp)
+        wm.addView(floating, lp)
+        main.post(object : Runnable { // every 0.5 s, for the offline blink
+            override fun run() {
+                if (!running) return
+                blinkOn = !blinkOn
+                led.setColor(when {
+                    Talk.listening -> Ui.LED_REC
+                    Talk.status == R.string.st_offline -> if (blinkOn) Ui.LED_REC else Ui.KEY
+                    else -> Ui.LED_OK
+                })
+                main.postDelayed(this, 500)
+            }
+        })
     }
 
     private fun setListening(on: Boolean) {
