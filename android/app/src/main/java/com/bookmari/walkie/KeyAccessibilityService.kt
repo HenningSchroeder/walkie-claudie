@@ -36,8 +36,9 @@ class KeyAccessibilityService : AccessibilityService() {
             KeyEvent.ACTION_DOWN -> if (event.repeatCount == 0) { holding = false; upKey = up; main.postDelayed(startHold, LONG_MS) }
             KeyEvent.ACTION_UP -> {
                 main.removeCallbacks(startHold)
-                if (holding) { if (!upKey) WalkieService.instance?.holdEnd() }
-                else getSystemService(AudioManager::class.java).adjustSuggestedStreamVolume(
+                // Releasing down during a volume-down recording always sends, even if a stray second DOWN reset [holding].
+                if (!up && Talk.hold && Talk.listening) WalkieService.instance?.holdEnd()
+                else if (!holding) getSystemService(AudioManager::class.java).adjustSuggestedStreamVolume(
                     if (up) AudioManager.ADJUST_RAISE else AudioManager.ADJUST_LOWER,
                     AudioManager.USE_DEFAULT_STREAM_TYPE, AudioManager.FLAG_SHOW_UI,
                 )

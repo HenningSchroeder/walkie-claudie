@@ -289,6 +289,11 @@ class WalkieService : Service() {
     private var sessions = 0
     private var failures = 0 // in a row, without the recognizer getting ready
     private val maxRecording = Runnable { finishListening() } // a toggle someone forgot to press again
+    // A recognizer that never answers the stop (seen right after the screen came on?): send what it heard so far.
+    private val stopTimeout = Runnable {
+        if (Talk.partial.length > heard.length) heard = Talk.partial
+        doneListening()
+    }
 
     // Google's recognizer chimes (usage NOTIFICATION_EVENT → notification stream, Galaxy phone 10/8) whenever a
     // session opens or closes, so a continued recording chimed at every pause, and the chimes doubled our own
@@ -392,6 +397,8 @@ class WalkieService : Service() {
         finishing = true
         val r = recognizer ?: return doneListening() // between sessions: nothing pending
         r.stopListening()
+        main.removeCallbacks(stopTimeout)
+        main.postDelayed(stopTimeout, 3_000)
     }
 
     private fun doneListening() {
@@ -420,6 +427,7 @@ class WalkieService : Service() {
     fun holdStart() {
         if (mono != null) return
         if (!Talk.listening) toggleListening()
+        if (!Talk.listening) return // in a call
         Talk.hold = true
         Talk.refresh()
     }
@@ -461,6 +469,7 @@ class WalkieService : Service() {
 
     private fun endListening() {
         main.removeCallbacks(maxRecording)
+        main.removeCallbacks(stopTimeout)
         recognizer?.destroy()
         recognizer = null
         main.postDelayed(unmuteLater, 1_000) // the closing chime comes a little after
