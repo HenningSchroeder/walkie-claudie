@@ -70,6 +70,9 @@
    - `WALKIE_ENABLE=1`이 없는 세션에서는 플러그인이 포트·도구를 열지 않음
    - 기존 세션의 대화를 이어 쓰려면: 그 세션을 종료한 뒤 위 명령에 `--continue`(마지막 대화) 또는 `--resume`(골라서)을 붙여 다시 실행
 3. 폰에 앱 APK 설치([Releases](../../releases) 또는 아래 '직접 빌드 / 개발')
+   - Play 스토어 밖에서 받은 앱이라 Google Play 프로텍트가 설치를 막을 수 있음. 막히면:
+     1. 경고 창에서 '자세히' → '그래도 설치'
+     2. 그래도 안 되면: Play 스토어 › 프로필 › Play 프로텍트 › 설정(톱니) › 'Play 프로텍트로 앱 검사' 끄기 → APK 설치 → 같은 곳에서 다시 켜기
 4. 2단계에서 띄운 세션 안에서 `/walkie:pair` 입력 → 나온 QR을 앱 **[설정] › 키 › QR**로 찍기
    - QR이 깨져 보이면: 터미널에서 `bun <플러그인 경로>/pair.ts`
    - QR을 찍을 수 없으면(같은 폰 화면 등): `pair.ts --text`의 연결 문구 복사 → 앱 **[설정] › PC 주소 › 붙여넣기**
@@ -141,6 +144,7 @@
 - 앱이 계속 '끊김': 폰에서 PC 주소가 닿는지(같은 Wi-Fi 또는 Tailscale), PC 방화벽이 포트 7700~7709를 막지 않는지, 세션을 `WALKIE_ENABLE=1`로 띄웠는지 확인
 - 'HTTP 401': 키가 다름 → `/walkie:pair`로 다시 연결
 - 이어폰 버튼이 작동하지 않음: 음악·팟캐스트 앱이 버튼을 가져간 상태 → 떠 있는 버튼 길게 누르기
+- 앱 설치가 막힘: Play 프로텍트 차단 → 설치 방법 3단계 참고
 - 접근성 스위치가 회색: 앱 정보 › ⋮ › '제한된 설정 허용' 먼저
 - 사용량이 안 보임: 사용량 조회가 비공식 기능이라 Claude Code 업데이트로 막힐 수 있음 → `settings.json`에 `"statusLine": {"type": "command", "command": "bun <플러그인 경로>/statusline.ts"}` 추가
 - 버튼이 어떤 키로 잡히는지 궁금하면: [설정] › 버튼 테스트
@@ -211,6 +215,9 @@ Putting those four together, the plan became: vibe code with my mouth and ears w
    - Without `WALKIE_ENABLE=1`, the plugin opens no port and no tools in that session
    - To keep an existing conversation: quit that session, then run the command above with `--continue` (latest conversation) or `--resume` (pick one)
 3. Install the app APK on the phone ([Releases](../../releases) or "Build / develop" below)
+   - Google Play Protect may block it, since it doesn't come from the Play Store. If it does:
+     1. In the warning, tap "More details" → "Install anyway"
+     2. Still blocked: Play Store › profile › Play Protect › Settings (gear) › turn off "Scan apps with Play Protect" → install the APK → turn it back on in the same place
 4. Type `/walkie:pair` inside the session from step 2 → scan the QR in the app under **Settings › Key › QR**
    - QR looks broken: run `bun <plugin path>/pair.ts` in a terminal
    - Can't scan (e.g. it's on the same phone): copy the line from `pair.ts --text` → app **Settings › PC address › Paste**
@@ -282,6 +289,7 @@ Configuration (environment variables):
 - App stays "Disconnected": check the phone can reach the PC (same Wi-Fi or Tailscale), the PC firewall allows ports 7700–7709, and the session was started with `WALKIE_ENABLE=1`
 - "HTTP 401": wrong key → pair again with `/walkie:pair`
 - Earphone button does nothing: a music or podcast app has it → long-press the floating button
+- App install blocked: Play Protect → see Setup step 3
 - Accessibility switch greyed out: App info › ⋮ › Allow restricted settings first
 - Usage doesn't show: the usage check is unofficial and may break after a Claude Code update → add `"statusLine": {"type": "command", "command": "bun <plugin path>/statusline.ts"}` to `settings.json`
 - Which key does a button send: Settings › Button test
