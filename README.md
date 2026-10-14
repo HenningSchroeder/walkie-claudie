@@ -76,7 +76,27 @@
 4. 2단계에서 띄운 세션 안에서 `/walkie:pair` 입력 → 나온 QR을 앱 **[설정] › 키 › QR**로 찍기
    - QR이 깨져 보이면: 터미널에서 `bun <플러그인 경로>/pair.ts`
    - QR을 찍을 수 없으면(같은 폰 화면 등): `pair.ts --text`의 연결 문구 복사 → 앱 **[설정] › PC 주소 › 붙여넣기**
-5. 앱 첫 화면 **[켜기]** → 마이크·알림·'다른 앱 위에 표시' 권한 허용
+5. 앱 첫 실행 → 마이크·알림 허용 → 첫 화면 **[켜기]** → 안내 창을 따라 '다른 앱 위에 표시'(떠 있는 버튼)·접근성(음량 버튼) 켜기. 자세한 내용은 아래 [권한과 접근성](#권한과-접근성)
+
+#### 권한과 접근성
+앱을 처음 열 때와 [켜기]를 누를 때 안내 창이 차례로 뜸. 메뉴 이름은 제조사·안드로이드 버전마다 조금씩 다름(아래는 삼성 기준, 괄호는 다른 폰 예시). 메뉴를 못 찾으면 폰 설정의 검색창에서 '접근성'·'다른 앱 위에'로 검색
+
+| 권한 | 쓰는 곳 | 없으면 |
+|---|---|---|
+| 마이크(필수) | 말을 폰의 음성 인식으로 글자로 바꿈. PC에는 글자만 감 | 말하기가 안 됨(답 듣기는 됨) |
+| 알림(권장) | 켜져 있는 동안 '켜짐' 알림 표시 | 동작은 함, 알림만 안 보임 |
+| 다른 앱 위에 표시 | 떠 있는 버튼 | 떠 있는 버튼만 안 뜸 |
+| 접근성 | 음량 ▼ 길게(말하기)·음량 ▲ 길게(독백) | 음량 버튼만 안 됨 |
+
+1. 마이크·알림: 첫 실행 안내 창 [다음] → 마이크는 '앱 사용 중에만 허용', 알림은 '허용'
+   - 거부했다면: 폰 설정 › 애플리케이션 › Walkie-Claudie › 권한 › 마이크 › '앱 사용 중에만 허용'(앱도 거부를 알아채면 [앱 정보] 버튼으로 안내)
+2. 다른 앱 위에 표시: [켜기] → 안내 창 [설정 열기] → (목록이 나오면 Walkie-Claudie) → 스위치 켜기 → 뒤로 와서 [켜기] 다시
+   - 떠 있는 버튼을 안 쓰면: 안내 창 [없이 켜기], 또는 [설정] › 떠 있는 버튼 끄기
+3. 접근성(음량 버튼을 쓸 때만): 처음 [켜기] 때 안내 창 [접근성] → 설치된 앱(픽셀: 다운로드한 앱, 그 외: 설치된 서비스 등) › Walkie-Claudie → 스위치 켜기 → 허용
+   - 왜 필요한가: 안드로이드는 다른 앱이 화면에 떠 있을 때 음량 버튼 입력을 접근성 서비스로만 넘겨줌. 이 앱은 음량 버튼만 보고 화면 내용은 읽지 않음. 켤 때 뜨는 '전체 제어' 경고는 모든 접근성 앱에 뜨는 공통 문구
+   - 스위치가 회색이거나 '제한된 설정' 창이 뜨면(안드로이드 13 이상, 스토어 밖에서 설치한 앱): 안내 창 [앱 정보](또는 폰 설정 › 애플리케이션 › Walkie-Claudie) › 오른쪽 위 ⋮ › '제한된 설정 허용' → 다시 접근성에서 켜기
+   - 나중에 켜려면: [설정] › '접근성 꺼짐' 줄 › [안내]
+   - 떠 있는 버튼·이어폰 버튼만 쓸 거면 안 켜도 됨
 
 설정 값(환경변수):
 
@@ -114,7 +134,7 @@
 1. 켜기: 첫 화면 [켜기] → 진동 1번 + 올라가는 전원음
 2. 말하기: 아래 3가지 중 편한 버튼으로([설정]에서 각각 켜고 끔)
    - 떠 있는 버튼: 마이크 누르기 → '삐삐삑' 소리 후 말하기. 잠깐 멈춰도 안 끊김(최대 2분)
-   - 음량 ▼ 길게: 누르는 동안 말하기. 짧게 누르면 평소 음량 조절. 화면이 켜져 있을 때만 됨, 접근성에서 Walkie-Claudie를 켜야 함
+   - 음량 ▼ 길게: 누르는 동안 말하기. 짧게 누르면 평소 음량 조절. 화면이 켜져 있을 때만 됨, 접근성을 켜야 함([권한과 접근성](#권한과-접근성))
    - 블루투스 이어폰 버튼: 한 번(또는 두 번) 눌러 시작. 화면이 꺼져 있어도 됨
 3. 보내기: 떠 있는 버튼·이어폰 버튼은 다시 누르기, 음량 ▼는 손 떼기 → PC가 받으면 확인음
 4. 답 듣기: 호출음 → 음성으로 읽어 줌
@@ -145,7 +165,8 @@
 - 'HTTP 401': 키가 다름 → `/walkie:pair`로 다시 연결
 - 이어폰 버튼이 작동하지 않음: 음악·팟캐스트 앱이 버튼을 가져간 상태 → 떠 있는 버튼 길게 누르기
 - 앱 설치가 막힘: Play 프로텍트 차단 → 설치 방법 3단계 참고
-- 접근성 스위치가 회색: 앱 정보 › ⋮ › '제한된 설정 허용' 먼저
+- 접근성 스위치가 회색: 앱 정보 › ⋮ › '제한된 설정 허용' 먼저([권한과 접근성](#권한과-접근성))
+- 음량 버튼을 길게 눌러도 평소처럼 음량만 바뀜: 접근성이 꺼져 있음 → [설정] › '접근성 꺼짐' › [안내]
 - 사용량이 안 보임: 사용량 조회가 비공식 기능이라 Claude Code 업데이트로 막힐 수 있음 → `settings.json`에 `"statusLine": {"type": "command", "command": "bun <플러그인 경로>/statusline.ts"}` 추가
 - 버튼이 어떤 키로 잡히는지 궁금하면: [설정] › 버튼 테스트
 
@@ -221,7 +242,27 @@ Putting those four together, the plan became: vibe code with my mouth and ears w
 4. Type `/walkie:pair` inside the session from step 2 → scan the QR in the app under **Settings › Key › QR**
    - QR looks broken: run `bun <plugin path>/pair.ts` in a terminal
    - Can't scan (e.g. it's on the same phone): copy the line from `pair.ts --text` → app **Settings › PC address › Paste**
-5. Tap **On** on the main screen → allow microphone, notifications and "display over other apps"
+5. Open the app → allow microphone and notifications → tap **On** on the main screen → follow the prompts to turn on "Display over other apps" (floating button) and Accessibility (volume keys). Details in [Permissions and accessibility](#permissions-and-accessibility) below
+
+#### Permissions and accessibility
+The app explains each step in a window, first when you open it and then when you tap On. Menu names vary a little by manufacturer and Android version (Samsung below, other phones in brackets). Can't find a menu? Search your phone's Settings for "accessibility" or "over other apps"
+
+| Permission | Used for | Without it |
+|---|---|---|
+| Microphone (required) | Turns your speech into text with the phone's speech recognition. Only the text goes to the PC | You can't talk (replies still play) |
+| Notifications (recommended) | Shows an "on" notification while the walkie is on | Still works, just no notification |
+| Display over other apps | The floating button | No floating button |
+| Accessibility | Hold volume down (talk) and volume up (monologue) | Volume keys don't work as talk keys |
+
+1. Microphone and notifications: first-run window → Next → microphone "While using the app", notifications "Allow"
+   - Said no? Phone Settings › Apps › Walkie-Claudie › Permissions › Microphone › "Allow only while using the app" (the app notices and offers an App info button too)
+2. Display over other apps: tap On → Open settings in the window → (pick Walkie-Claudie if a list appears) → turn the switch on → come back and tap On again
+   - Not using the floating button: "Turn on without it" in the window, or Settings › Floating button off
+3. Accessibility (only if you want the volume keys): on your first On, tap Accessibility in the window → Installed apps (Pixel: Downloaded apps, others: Installed services etc.) › Walkie-Claudie → switch on → Allow
+   - Why: while another app is on screen, Android hands volume key presses to other apps only through Accessibility. The app watches the volume keys only and doesn't read the screen. The "full control" warning is the same for every accessibility app
+   - Switch greyed out, or a "Restricted setting" message (Android 13+, apps installed outside the Play Store): App info in the window (or phone Settings › Apps › Walkie-Claudie) › ⋮ top right › "Allow restricted settings" → turn it on in Accessibility again
+   - To do it later: Settings › "Accessibility is off" row › How
+   - Only using the floating or earphone button? You can skip it
 
 Configuration (environment variables):
 
@@ -259,7 +300,7 @@ Configuration (environment variables):
 1. Turn on: tap On on the main screen → one buzz + rising power tone
 2. Talk: with whichever of the three buttons you like (each switchable in Settings)
    - Floating button: tap the mic → chirp → talk. Short pauses don't cut you off (2 minutes max)
-   - Hold volume down: talk while holding. Short presses still change the volume. Screen on only; turn on Walkie-Claudie under Accessibility
+   - Hold volume down: talk while holding. Short presses still change the volume. Screen on only; needs Accessibility ([Permissions and accessibility](#permissions-and-accessibility))
    - Bluetooth earphone button: press once (or twice) to start. Works with the screen off
 3. Send: tap the floating or earphone button again, or release volume down → a beep once the PC has it
 4. Hear the reply: call-alert beep → the reply is read aloud
@@ -290,7 +331,8 @@ Configuration (environment variables):
 - "HTTP 401": wrong key → pair again with `/walkie:pair`
 - Earphone button does nothing: a music or podcast app has it → long-press the floating button
 - App install blocked: Play Protect → see Setup step 3
-- Accessibility switch greyed out: App info › ⋮ › Allow restricted settings first
+- Accessibility switch greyed out: App info › ⋮ › Allow restricted settings first ([Permissions and accessibility](#permissions-and-accessibility))
+- Holding a volume key only changes the volume: Accessibility is off → Settings › "Accessibility is off" › How
 - Usage doesn't show: the usage check is unofficial and may break after a Claude Code update → add `"statusLine": {"type": "command", "command": "bun <plugin path>/statusline.ts"}` to `settings.json`
 - Which key does a button send: Settings › Button test
 

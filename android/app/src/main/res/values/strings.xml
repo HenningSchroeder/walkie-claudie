@@ -28,7 +28,6 @@
     <string name="trig_volume">Hold volume key</string>
     <string name="trig_ear_single">Earphone single</string>
     <string name="trig_ear_double">Earphone double</string>
-    <string name="a11y_needed">Turn on Walkie-Claudie under Installed apps. Greyed out? First allow it under App info › ⋮ › Allow restricted settings.</string>
     <string name="voice">Voice</string>
     <string name="voice_engine">Engine</string>
     <string name="voice_engine_default">Phone default (%s)</string>
@@ -97,4 +96,19 @@
     <string name="scan_sub">Reads replies from every open channel; other channels\' replies start with a switch tone. You still talk on the current channel</string>
     <string name="scan_follow">Follow the replying channel</string>
     <string name="scan_follow_sub">A reply from another channel switches to it, so your next message goes there too</string>
+    <string name="next">Next</string>
+    <string name="later">Later</string>
+    <string name="how">How</string>
+    <string name="open_settings">Open settings</string>
+    <string name="perm_title">First: allow permissions</string>
+    <string name="perm_guide">Walkie-Claudie uses these. Tap Allow in the windows that follow.\n\n· Microphone (required): hears you and turns your speech into text with the phone\'s speech recognition. Only the text goes to the PC.\n· Notifications (recommended): shows an \"on\" notification while the walkie is on, so you can tell at a glance. It still works if you say no.\n\nWhen you tap [On], it also walks you through \"Display over other apps\" (for the floating button) and, for the volume keys, Accessibility.</string>
+    <string name="mic_denied_title">No microphone permission</string>
+    <string name="mic_denied">Without the microphone you can\'t talk.\n\n[App info] below › Permissions › Microphone › Allow only while using the app.</string>
+    <string name="overlay_title">Allow display over other apps</string>
+    <string name="overlay_guide">The floating button (the small walkie over other apps) needs the \"Display over other apps\" permission.\n\n1. [Open settings] below (if a list of apps appears, pick Walkie-Claudie)\n2. Turn the switch on (the name varies by phone, e.g. \"Allow display over other apps\", \"Appear on top\")\n3. Come back and tap [On] again\n\nNot using the floating button? Tap [Turn on without it], or switch it off under Settings › Floating button.</string>
+    <string name="overlay_skip">Turn on without it</string>
+    <string name="a11y_guide_title">Turn on Accessibility for the volume keys</string>
+    <string name="a11y_guide">Hold volume down to talk and volume up for monologue mode: both need Walkie-Claudie\'s accessibility service, because Android only hands volume key presses to other apps through Accessibility. It watches the volume keys only; it doesn\'t read the screen.\n\nHow\n1. [Accessibility] below\n2. Installed apps › Walkie-Claudie (the menu name varies by phone, e.g. \"Downloaded apps\", \"Installed services\")\n3. Turn the switch on › Allow (the \"full control\" warning is the same for every accessibility app)\n\nSwitch greyed out, or a \"Restricted setting\" message? (Android 13+, apps installed outside the Play Store)\n1. [App info] below › ⋮ (top right) › Allow restricted settings\n2. Back to [Accessibility] and turn it on\n\nNot using the volume keys? [Later]. The floating and earphone buttons work without it.</string>
+    <string name="a11y_off">Accessibility is off</string>
+    <string name="a11y_off_sub">The volume keys need it on</string>
 </resources>

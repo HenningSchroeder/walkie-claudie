@@ -102,7 +102,10 @@ class WalkieService : Service() {
             .setContentText(getString(R.string.notif_walkie))
             .setContentIntent(android.app.PendingIntent.getActivity(this, 0, Intent(this, MainActivity::class.java), android.app.PendingIntent.FLAG_IMMUTABLE))
             .build()
-        startForeground(2, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE or ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK)
+        // No microphone permission: Android refuses a microphone service outright, so start without it (replies still play).
+        val mic = if (checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) == android.content.pm.PackageManager.PERMISSION_GRANTED)
+            ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE else 0
+        startForeground(2, notification, mic or ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK)
 
         prefs = getSharedPreferences(PREFS, MODE_PRIVATE)
         key = prefs.getString("key", "")!!

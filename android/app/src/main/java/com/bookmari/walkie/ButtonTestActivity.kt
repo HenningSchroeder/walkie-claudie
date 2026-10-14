@@ -5,7 +5,6 @@ import android.app.Activity
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
 import android.view.KeyEvent
@@ -32,8 +31,7 @@ class ButtonTestActivity : Activity() {
         }, null)
         val a11y = { startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) }
         menu.menuRow(getString(R.string.a11y_open), null, lcdAction(getString(R.string.open)), a11y)
-        val info = { startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$packageName"))) }
-        menu.menuRow(getString(R.string.app_info), null, lcdAction(getString(R.string.open)), info)
+        menu.menuRow(getString(R.string.app_info), null, lcdAction(getString(R.string.open))) { openAppInfo() }
         body.lcd(menu)
 
         log = lcdText(Ui.S)

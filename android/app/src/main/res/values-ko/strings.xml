@@ -27,7 +27,6 @@
     <string name="trig_volume">음량 길게</string>
     <string name="trig_ear_single">이어폰 한 번</string>
     <string name="trig_ear_double">이어폰 두 번</string>
-    <string name="a11y_needed">설치된 앱에서 Walkie-Claudie를 켜세요. 회색으로 막혀 있으면 앱 정보 › ⋮ › 제한된 설정 허용을 먼저 하세요.</string>
     <string name="voice">목소리</string>
     <string name="voice_engine">엔진</string>
     <string name="voice_engine_default">폰 기본 (%s)</string>
@@ -96,4 +95,19 @@
     <string name="scan_sub">켜진 채널의 답을 모두 읽습니다. 다른 채널 답 앞에는 전환음이 납니다. 말하기는 지금 채널로 갑니다</string>
     <string name="scan_follow">답 온 채널로 넘어가기</string>
     <string name="scan_follow_sub">다른 채널에서 답이 오면 그 채널로 바뀌어, 다음 말하기도 그 채널로 갑니다</string>
+    <string name="next">다음</string>
+    <string name="later">나중에</string>
+    <string name="how">안내</string>
+    <string name="open_settings">설정 열기</string>
+    <string name="perm_title">처음 설정: 권한 허용</string>
+    <string name="perm_guide">Walkie-Claudie는 아래 권한을 씁니다. 이어서 뜨는 창에서 \'허용\'을 눌러 주세요.\n\n· 마이크(꼭 필요): 말을 듣고 폰의 음성 인식으로 글자로 바꿉니다. PC에는 글자만 보냅니다.\n· 알림(권장): 무전기가 켜져 있는 동안 위에 \'켜짐\' 알림을 띄워 한눈에 알 수 있습니다. 거부해도 동작은 합니다.\n\n[켜기]를 누르면 떠 있는 버튼용 \'다른 앱 위에 표시\'와, 음량 버튼을 쓰려면 접근성도 차례로 안내합니다.</string>
+    <string name="mic_denied_title">마이크 권한 없음</string>
+    <string name="mic_denied">마이크 권한이 없으면 말하기가 안 됩니다.\n\n아래 [앱 정보] › 권한 › 마이크 › \'앱 사용 중에만 허용\'을 고르세요.</string>
+    <string name="overlay_title">다른 앱 위에 표시 허용</string>
+    <string name="overlay_guide">떠 있는 버튼(다른 앱 위에 뜨는 작은 무전기)을 쓰려면 \'다른 앱 위에 표시\' 권한이 필요합니다.\n\n1. 아래 [설정 열기] (앱 목록이 나오면 Walkie-Claudie 선택)\n2. 스위치 켜기 (폰에 따라 \'권한 허용\'·\'다른 앱 위에 표시 허용\' 등 이름이 다를 수 있습니다)\n3. 뒤로 돌아와 [켜기]를 다시 누르기\n\n떠 있는 버튼을 안 쓰면 [없이 켜기]를 누르거나 [설정] › 떠 있는 버튼을 끄세요.</string>
+    <string name="overlay_skip">없이 켜기</string>
+    <string name="a11y_guide_title">음량 버튼을 쓰려면 접근성 켜기</string>
+    <string name="a11y_guide">음량 ▼ 길게(말하기)와 음량 ▲ 길게(독백)는 Walkie-Claudie 접근성을 켜야 됩니다. 안드로이드는 음량 버튼 입력을 접근성으로만 다른 앱에 넘겨주기 때문입니다. 음량 버튼만 보고, 화면 내용은 읽지 않습니다.\n\n켜는 법\n1. 아래 [접근성]\n2. 설치된 앱 › Walkie-Claudie (폰에 따라 \'다운로드한 앱\'·\'설치된 서비스\' 등 이름이 다를 수 있습니다)\n3. 스위치 켜기 › 허용 (\'전체 제어\' 경고는 모든 접근성 앱에 뜨는 공통 문구입니다)\n\n스위치가 회색이거나 \'제한된 설정\' 창이 뜨면 (안드로이드 13 이상, 스토어 밖에서 설치한 앱)\n1. 아래 [앱 정보] › 오른쪽 위 ⋮ › 제한된 설정 허용\n2. 다시 [접근성]에서 켜기\n\n음량 버튼을 안 쓰면 [나중에]. 떠 있는 버튼·이어폰 버튼은 접근성 없이도 됩니다.</string>
+    <string name="a11y_off">접근성 꺼짐</string>
+    <string name="a11y_off_sub">음량 버튼은 접근성을 켜야 됩니다</string>
 </resources>

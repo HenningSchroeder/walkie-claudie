@@ -2,6 +2,8 @@ package com.bookmari.walkie
 
 import android.Manifest
 import android.app.Activity
+import android.app.AlertDialog
+import android.content.pm.PackageManager
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -19,6 +21,7 @@ import android.widget.TextView
 import kotlin.concurrent.thread
 
 private const val TODO_OPEN = "todo_open"
+private const val A11Y_ASKED = "a11y_asked"
 
 /** Status, usage, open items and conversation on LCDs; [settings][on/off][talk] keys. Talking happens via WalkieService. */
 class MainActivity : Activity() {
@@ -56,7 +59,11 @@ class MainActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        requestPermissions(arrayOf(Manifest.permission.RECORD_AUDIO, Manifest.permission.POST_NOTIFICATIONS), 0)
+        val perms = arrayOf(Manifest.permission.RECORD_AUDIO, Manifest.permission.POST_NOTIFICATIONS)
+        // No microphone yet (first run, or refused): say why before Android's own prompts.
+        if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) requestPermissions(perms, 0)
+        else AlertDialog.Builder(this).setTitle(R.string.perm_title).setMessage(R.string.perm_guide).setCancelable(false)
+            .setPositiveButton(R.string.next) { _, _ -> requestPermissions(perms, 0) }.show()
         body = Body(this, ::blink)
 
         // Top LCD: channel, connection, usage meters.
@@ -159,7 +166,16 @@ class MainActivity : Activity() {
             when {
                 Talk.listening -> startService(Intent(this, WalkieService::class.java).setAction(WalkieService.CANCEL))
                 WalkieService.instance != null -> { stopService(Intent(this, WalkieService::class.java)); buzz(off = true) }
-                else -> { startWalkie(); buzz(off = false) }
+                else -> {
+                    startWalkie {
+                        // Volume keys on but no accessibility: explain once; afterwards Settings shows it.
+                        if (prefs.getBoolean(WalkieService.VOLUME, true) && !a11yOn() && !prefs.getBoolean(A11Y_ASKED, false)) {
+                            prefs.edit().putBoolean(A11Y_ASKED, true).apply()
+                            a11yGuide()
+                        }
+                    }
+                    buzz(off = false)
+                }
             }
         }
         body.key(power)
@@ -170,6 +186,14 @@ class MainActivity : Activity() {
         back = key(R.string.back) { closeChannels() }
         body.key(back)
         (back.layoutParams as LinearLayout.LayoutParams).marginStart = 0 // shown alone, in place of the three
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
+        val mic = permissions.indexOf(Manifest.permission.RECORD_AUDIO)
+        if (mic >= 0 && grantResults.getOrNull(mic) == PackageManager.PERMISSION_DENIED)
+            AlertDialog.Builder(this).setTitle(R.string.mic_denied_title).setMessage(R.string.mic_denied)
+                .setPositiveButton(R.string.app_info) { _, _ -> openAppInfo() }
+                .setNegativeButton(R.string.later, null).show()
     }
 
     override fun onStart() {
@@ -354,14 +378,38 @@ class MainActivity : Activity() {
     }
 }
 
-/** (Re)starts the walkie with the stored settings, asking for the overlay permission first if the floating button needs it. */
-fun Activity.startWalkie() {
+/**
+ * (Re)starts the walkie with the stored settings, then [onStarted]. The floating button needs the overlay permission:
+ * without it, explain and offer its settings screen or starting without the button.
+ */
+fun Activity.startWalkie(onStarted: () -> Unit = {}) {
     val prefs = getSharedPreferences(WalkieService.PREFS, Activity.MODE_PRIVATE)
-    if (prefs.getBoolean(WalkieService.FLOATING, true) && !Settings.canDrawOverlays(this))
-        startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName")))
-    else {
+    val start = {
         stopService(Intent(this, WalkieService::class.java)) // restart picks up new settings
         startForegroundService(Intent(this, WalkieService::class.java))
+        onStarted()
     }
+    if (prefs.getBoolean(WalkieService.FLOATING, true) && !Settings.canDrawOverlays(this))
+        AlertDialog.Builder(this).setTitle(R.string.overlay_title).setMessage(R.string.overlay_guide)
+            .setPositiveButton(R.string.open_settings) { _, _ ->
+                startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName")))
+            }
+            .setNegativeButton(R.string.overlay_skip) { _, _ -> start() }
+            .show()
+    else start()
 }
 
+/** Our accessibility service is on (the volume keys need it). */
+fun Activity.a11yOn() =
+    packageName in Settings.Secure.getString(contentResolver, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES).orEmpty()
+
+/** Why the volume keys need accessibility and how to turn it on, with both screens involved one tap away. */
+fun Activity.a11yGuide() {
+    AlertDialog.Builder(this).setTitle(R.string.a11y_guide_title).setMessage(R.string.a11y_guide)
+        .setPositiveButton(R.string.a11y_open) { _, _ -> startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) }
+        .setNeutralButton(R.string.app_info) { _, _ -> openAppInfo() }
+        .setNegativeButton(R.string.later, null)
+        .show()
+}
+
+fun Activity.openAppInfo() = startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$packageName")))

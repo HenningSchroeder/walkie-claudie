@@ -5,7 +5,6 @@ import android.app.AlertDialog
 import android.content.ClipboardManager
 import android.content.Intent
 import android.os.Bundle
-import android.provider.Settings
 import android.text.InputType
 import android.widget.EditText
 import android.widget.LinearLayout
@@ -48,13 +47,9 @@ class SettingsActivity : Activity() {
         }
 
         title(R.string.sec_talk)
-        switch(R.string.trig_volume, R.string.trig_volume_sub, WalkieService.VOLUME, true) {
-            val enabled = Settings.Secure.getString(contentResolver, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES).orEmpty()
-            if (packageName !in enabled) {
-                Toast.makeText(this, R.string.a11y_needed, Toast.LENGTH_LONG).show()
-                startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
-            }
-        }
+        switch(R.string.trig_volume, R.string.trig_volume_sub, WalkieService.VOLUME, true) { if (!a11yOn()) a11yGuide() }
+        if (prefs.getBoolean(WalkieService.VOLUME, true) && !a11yOn())
+            row(R.string.a11y_off, getString(R.string.a11y_off_sub), action(R.string.how)) { a11yGuide() }
         // The earphone button is taken back by long-pressing the floating button, so each line says what the other allows.
         val floating = prefs.getBoolean(WalkieService.FLOATING, true)
         val ear = prefs.getBoolean(WalkieService.EAR_SINGLE, true) || prefs.getBoolean(WalkieService.EAR_DOUBLE, false)
