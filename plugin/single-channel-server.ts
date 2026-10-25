@@ -109,6 +109,14 @@ function authorized(req: Request): boolean {
   return got.length === keyBuf.length && timingSafeEqual(got, keyBuf)
 }
 
+/** /status only: also accepts ?key=... so a plain dashboard link (no custom headers) can work. The phone API (/say, /poll) stays header-only -- unchanged, matches the Android app. */
+function authorizedWeb(req: Request, url: URL): boolean {
+  if (authorized(req)) return true
+  const got = Buffer.from(url.searchParams.get('key') ?? '')
+  const want = Buffer.from(key)
+  return got.length === want.length && timingSafeEqual(got, want)
+}
+
 const SYSTEM_PROMPT = [
   'The sender talks to you from the Walkie-Claudie phone app, usually hands-busy',
   '(e.g. driving or delivering) with earphones in. They never see this process directly;',
@@ -283,10 +291,12 @@ async function handle(req: Request, ip: string): Promise<Response> {
     return json({ ok, name: NAME, mode: 'single-channel', vaultSync: VAULT_ENABLED, lastTurn: last ?? null, uptimeS: Math.floor((Date.now() - START_TIME) / 1000) }, ok ? 200 : 503)
   }
 
-  if (!authorized(req)) return json({ error: 'bad key' }, 401)
-
-  if (req.method === 'GET' && url.pathname === '/status')
+  if (req.method === 'GET' && url.pathname === '/status') {
+    if (!authorizedWeb(req, url)) return json({ error: 'bad key' }, 401)
     return new Response(await statusPage(), { headers: { 'content-type': 'text/html; charset=utf-8' } })
+  }
+
+  if (!authorized(req)) return json({ error: 'bad key' }, 401)
 
   if (req.method === 'GET' && url.pathname === '/hello') return json({ name: NAME, port: PORT })
 
