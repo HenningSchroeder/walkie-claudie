@@ -35,6 +35,15 @@
  * Intended to run against a dedicated git identity with write access to
  * nothing but that one vault repo -- see docs/pathfinding-voice-agent-dialog.md
  * §8.6 for why (RG-818).
+ *
+ * Two operator-facing endpoints, same security model as the phone API:
+ *   GET /healthz -- unauthenticated (dashboards don't carry the bearer key),
+ *     still private-net gated. {"ok":true,...} once the first turn after
+ *     startup has succeeded or none has run yet; {"ok":false} if the most
+ *     recent turn errored, so a dashboard tile actually means something.
+ *   GET /status -- bearer-key authenticated HTML: mode, queue depth, last
+ *     turns (model/tokens/cost from each claude -p result), git log/status
+ *     of the workdir. Debugging aid for the operator, not phone-facing.
  */
 
 import { randomBytes, timingSafeEqual } from 'crypto'
@@ -70,6 +79,18 @@ const OUTBOX_FILE = join(STATE_DIR, 'outbox.json')
 let outbox: Reply[] = []
 try { outbox = JSON.parse(readFileSync(OUTBOX_FILE, 'utf8')) } catch { outbox = [] }
 let seq = Math.max(Date.now(), outbox.at(-1)?.seq ?? 0)
+
+// Per-turn operator-facing metadata -- not the phone's concern, just /status's.
+type Turn = {
+  id: string; ts: string; ok: boolean
+  model?: string; costUsd?: number
+  inputTokens?: number; outputTokens?: number; cacheReadTokens?: number
+  durationMs?: number; vaultChanged?: boolean; error?: string
+}
+const TURNS_FILE = join(STATE_DIR, 'turns.json')
+let turns: Turn[] = []
+try { turns = JSON.parse(readFileSync(TURNS_FILE, 'utf8')) } catch { turns = [] }
+const START_TIME = Date.now()
 
 const waiters = new Set<() => void>()
 function wake(): void { for (const w of [...waiters]) w() }
@@ -133,14 +154,14 @@ async function syncVaultOnStart(): Promise<void> {
   else process.stderr.write('single-channel: vault synced.\n')
 }
 
-/** Commits and pushes whatever the turn just changed in the vault. Best-effort: a failure here is logged, not thrown -- the phone still gets its reply either way. */
-async function commitAndPushVault(id: string): Promise<void> {
-  if (!VAULT_ENABLED) return
+/** Commits and pushes whatever the turn just changed in the vault. Best-effort: a failure here is logged, not thrown -- the phone still gets its reply either way. Returns whether there was anything to commit. */
+async function commitAndPushVault(id: string): Promise<boolean> {
+  if (!VAULT_ENABLED) return false
   const status = await run(['git', 'status', '--porcelain'])
-  if (!status.ok || !status.out.trim()) return
+  if (!status.ok || !status.out.trim()) return false
   await run(['git', 'add', '-A'])
   const commit = await run(['git', 'commit', '-m', `walkie: ${id}`])
-  if (!commit.ok) { process.stderr.write(`single-channel: vault commit failed for ${id}: ${commit.err.slice(0, 300)}\n`); return }
+  if (!commit.ok) { process.stderr.write(`single-channel: vault commit failed for ${id}: ${commit.err.slice(0, 300)}\n`); return false }
   let push = await run(['git', 'push'])
   if (!push.ok) {
     // Someone else (another device's Obsidian sync) may have pushed meanwhile -- one rebase retry, then give up quietly.
@@ -148,6 +169,13 @@ async function commitAndPushVault(id: string): Promise<void> {
     push = await run(['git', 'push'])
   }
   if (!push.ok) process.stderr.write(`single-channel: vault push failed for ${id} (left committed locally, will retry next turn): ${push.err.slice(0, 300)}\n`)
+  return true
+}
+
+function recordTurn(t: Turn): void {
+  turns.push(t)
+  if (turns.length > 50) turns.shift()
+  writeFileSync(TURNS_FILE, JSON.stringify(turns), { mode: 0o600 })
 }
 
 async function processQueue(): Promise<void> {
@@ -155,6 +183,7 @@ async function processQueue(): Promise<void> {
   processing = true
   while (queue.length) {
     const { id, text } = queue.shift()!
+    const turnStart = Date.now()
     try {
       // 'auto' mode keeps Claude's own risk classifier active (it still blocks
       // what it assesses as risky) but doesn't require a human to click
@@ -175,14 +204,25 @@ async function processQueue(): Promise<void> {
         claudeSessionId = result.session_id
         writeFileSync(SESSION_FILE, claudeSessionId, { mode: 0o600 })
       }
-      await commitAndPushVault(id)
+      const vaultChanged = await commitAndPushVault(id)
       const replyText = String(result.result ?? '').trim() || '(no reply)'
       const r: Reply = { seq: ++seq, text: replyText, reply_to: id, ts: new Date().toISOString() }
       outbox.push(r)
       if (outbox.length > 200) outbox.shift()
       writeFileSync(OUTBOX_FILE, JSON.stringify(outbox), { mode: 0o600 })
+      const modelKey = Object.keys(result.modelUsage ?? {})[0]
+      const mu = modelKey ? result.modelUsage[modelKey] : undefined
+      recordTurn({
+        id, ts: r.ts, ok: true, vaultChanged,
+        model: modelKey ?? mu?.canonicalModel, costUsd: result.total_cost_usd,
+        inputTokens: mu?.inputTokens ?? result.usage?.input_tokens,
+        outputTokens: mu?.outputTokens ?? result.usage?.output_tokens,
+        cacheReadTokens: mu?.cacheReadInputTokens ?? result.usage?.cache_read_input_tokens,
+        durationMs: Date.now() - turnStart,
+      })
       wake()
     } catch (err) {
+      recordTurn({ id, ts: new Date().toISOString(), ok: false, error: String(err).slice(0, 300), durationMs: Date.now() - turnStart })
       process.stderr.write(`single-channel: claude -p failed for ${id}: ${err}\n`)
       const r: Reply = { seq: ++seq, text: 'Sorry, something went wrong on my end.', reply_to: id, ts: new Date().toISOString() }
       outbox.push(r)
@@ -193,10 +233,60 @@ async function processQueue(): Promise<void> {
   processing = false
 }
 
+function escapeHtml(s: string): string {
+  return s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!))
+}
+
+async function statusPage(): Promise<string> {
+  const [log, status] = await Promise.all([
+    run(['git', 'log', '-10', '--pretty=format:%h %ad %s', '--date=short']),
+    run(['git', 'status', '--porcelain']),
+  ])
+  const uptimeS = Math.floor((Date.now() - START_TIME) / 1000)
+  const rows = turns.slice().reverse().map(t => `<tr>
+    <td>${escapeHtml(t.ts)}</td><td>${t.ok ? '✔' : '✘'}</td>
+    <td>${escapeHtml(t.model ?? '-')}</td>
+    <td>${t.inputTokens ?? '-'}/${t.outputTokens ?? '-'}${t.cacheReadTokens ? ` (+${t.cacheReadTokens} cached)` : ''}</td>
+    <td>${t.costUsd != null ? '$' + t.costUsd.toFixed(4) : '-'}</td>
+    <td>${t.durationMs != null ? (t.durationMs / 1000).toFixed(1) + 's' : '-'}</td>
+    <td>${t.vaultChanged ? 'yes' : '-'}</td>
+    <td>${escapeHtml(t.error ?? '')}</td>
+  </tr>`).join('\n')
+  return `<!doctype html><html><head><meta charset="utf-8"><title>walkie-claudie single-channel status</title>
+<style>body{font-family:system-ui,sans-serif;margin:2rem;color:#222}table{border-collapse:collapse;width:100%}
+td,th{border:1px solid #ccc;padding:.3rem .6rem;text-align:left;font-size:.85rem}th{background:#f0f0f0}
+pre{background:#f7f7f7;padding:.6rem;overflow-x:auto}h2{margin-top:2rem}</style></head><body>
+<h1>walkie-claudie — ${escapeHtml(NAME)}</h1>
+<p>mode: single-channel &middot; vault sync: ${VAULT_ENABLED ? 'on' : 'off'} &middot; uptime: ${uptimeS}s &middot;
+queue: ${queue.length} ${processing ? '(processing)' : '(idle)'} &middot;
+claude session: ${claudeSessionId ? escapeHtml(claudeSessionId) : '(none yet)'}</p>
+<h2>Recent turns</h2>
+<table><tr><th>ts</th><th>ok</th><th>model</th><th>tokens in/out</th><th>cost</th><th>duration</th><th>vault changed</th><th>error</th></tr>
+${rows || '<tr><td colspan="8">none yet</td></tr>'}</table>
+<h2>Workdir (${escapeHtml(WORKDIR)})</h2>
+<p>git status: ${status.out.trim() ? `<pre>${escapeHtml(status.out)}</pre>` : 'clean'}</p>
+<p>recent commits:</p><pre>${escapeHtml(log.out || '(no commits / no git history)')}</pre>
+</body></html>`
+}
+
 async function handle(req: Request, ip: string): Promise<Response> {
   if (!isPrivate(ip)) return json({ error: 'private networks only' }, 403)
-  if (!authorized(req)) return json({ error: 'bad key' }, 401)
   const url = new URL(req.url)
+
+  // Unauthenticated (dashboards poll without the bearer key) but still
+  // private-net gated above. Reflects whether the most recent turn
+  // succeeded, not just "process is up" -- a dead claude -p still leaves
+  // the HTTP server listening.
+  if (req.method === 'GET' && url.pathname === '/healthz') {
+    const last = turns.at(-1)
+    const ok = !last || last.ok
+    return json({ ok, name: NAME, mode: 'single-channel', vaultSync: VAULT_ENABLED, lastTurn: last ?? null, uptimeS: Math.floor((Date.now() - START_TIME) / 1000) }, ok ? 200 : 503)
+  }
+
+  if (!authorized(req)) return json({ error: 'bad key' }, 401)
+
+  if (req.method === 'GET' && url.pathname === '/status')
+    return new Response(await statusPage(), { headers: { 'content-type': 'text/html; charset=utf-8' } })
 
   if (req.method === 'GET' && url.pathname === '/hello') return json({ name: NAME, port: PORT })
 
