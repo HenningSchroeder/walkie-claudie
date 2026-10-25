@@ -156,7 +156,14 @@ async function processQueue(): Promise<void> {
   while (queue.length) {
     const { id, text } = queue.shift()!
     try {
-      const args = ['-p', '--output-format', 'json', '--append-system-prompt', SYSTEM_PROMPT]
+      // 'auto' mode keeps Claude's own risk classifier active (it still blocks
+      // what it assesses as risky) but doesn't require a human to click
+      // approve for the rest -- appropriate here because the container itself
+      // is the hard boundary (RG-818 §8.3/§8.6), not this classifier alone.
+      // Headless -p starts with no approvals carried over from anywhere, so
+      // without this every tool call (including writing a vault note) is
+      // denied outright with no one to ask.
+      const args = ['-p', '--output-format', 'json', '--permission-mode', 'auto', '--append-system-prompt', SYSTEM_PROMPT]
       if (claudeSessionId) args.push('--resume', claudeSessionId)
       args.push(text)
       const proc = Bun.spawn(['claude', ...args], { cwd: WORKDIR, stdout: 'pipe', stderr: 'pipe' })
